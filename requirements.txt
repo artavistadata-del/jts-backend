@@ -1,0 +1,27 @@
+# Web Framework & Server
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+
+# Data Processing (High Performance)
+polars==0.20.18
+fastexcel==0.10.1
+pyarrow==15.0.2
+
+# Task Queue & Broker
+celery==5.3.6
+redis==5.0.3
+minio
+
+# Database & ORM
+sqlalchemy==2.0.29
+psycopg2-binary==2.9.9
+
+# Security & Authentication (JWT)
+python-jose[cryptography]==3.3.0
+bcrypt
+pyjwt
+# passlib[bcrypt]==1.7.4
+
+# Environment & Utilities
+python-dotenv==1.0.1
