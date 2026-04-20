@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from config.config import get_db
-from models.models import User
+from models.models import Users
 
 load_dotenv()
 
@@ -70,7 +70,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except jwt.PyJWTError: 
         raise credentials_exception
 
-    user = db.query(User).filter(User.nik == nik).first()
+    user = db.query(Users).filter(Users.nik == nik).first()
     
     if user is None:
         raise HTTPException(

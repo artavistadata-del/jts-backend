@@ -1,5 +1,4 @@
-from models.models import User
-from models.schemas import User as userData
+from models.models import Users
 from sqlalchemy.orm import Session
 
 
@@ -7,12 +6,12 @@ class UserRepository :
     def __init__(self, db : Session):
         self.db = db
 
-    def insert_user(self, user : User) :
+    def insert_user(self, user : Users) :
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
-        return user
+        return "User Berhasil Ditambahkan"
     
     def select_user(self, nik : str) :
-        return self.db.query(User).filter(User.nik == nik).first()
+        return self.db.query(Users).filter(Users.nik == nik).first()
         

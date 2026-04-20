@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from config.config import get_db 
 from config.dependencies import get_user_service
 from core.security import get_current_user
-from models.schemas import User as UserSchema
+from models.schemas import UserSignIn as UserSchemaSignIn
+from models.schemas import UserSignUp as UserSchemaSignUp
 from repositories.user_repository import UserRepository
 from services.user_service import UserService
 
@@ -17,13 +18,13 @@ router = APIRouter(
 
 
 @router.post("/signup", status_code=202)
-def sign_up(userData : UserSchema, userService : UserService = Depends(get_user_service)) :
+def sign_up(userData : UserSchemaSignUp, userService : UserService = Depends(get_user_service)) :
     result = userService.signUp(userData)
     return {"message": "Registrasi berhasil", "data": result}
 
 
 @router.post("/signin")
-def sign_in(userData : UserSchema, userService : UserService = Depends(get_user_service)) :
+def sign_in(userData : UserSchemaSignIn, userService : UserService = Depends(get_user_service)) :
     result = userService.signIn(userData)
     return {"message": "sign in berhasil", "data": result}
 
@@ -34,6 +35,6 @@ def get_me(userNow = Depends(get_current_user)):
         "status": "berhasil",
         "pesan": "Selamat datang di area rahasia!",
         "data": {
-            "nik": userNow.nik,
+            "nik": userNow,
         }
     }
