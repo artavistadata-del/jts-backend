@@ -1,14 +1,11 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
 # Import yang dibutuhkan (sesuaikan dengan struktur foldermu)
-from config.config import get_db 
 from config.dependencies import get_user_service
 from core.security import get_current_user
-from models.schemas import UserSignIn as UserSchemaSignIn
-from models.schemas import UserSignUp as UserSchemaSignUp
-from repositories.user_repository import UserRepository
-from services.user_service import UserService
+from models.schemas.user_schema import UserSignIn as UserSchemaSignIn
+from models.schemas.user_schema import UserSignUp as UserSchemaSignUp
+from users.user_service import UserService
 
 
 router = APIRouter(

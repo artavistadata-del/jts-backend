@@ -1,18 +1,19 @@
 from fastapi import HTTPException, status
 from core.security import get_password_hash, verify_password,create_access_token
-from models.models import Users as UserModels
-from models.schemas import UserSignUp as UserSchemaSignUp
-from models.schemas import UserSignIn as UserSchemaSignIn
-from repositories.department_repository import DepartmentRepository
-from repositories.role_repository import RoleRepository
-from repositories.user_repository import UserRepository
+from departments.department_service import DepartmentService
+from models.models.models import Users as UserModels
+from models.schemas.user_schema import UserSignUp as UserSchemaSignUp
+from models.schemas.user_schema import UserSignIn as UserSchemaSignIn
+
+from roles.role_service import RoleService
+from users.user_repository import UserRepository
 
 
 class UserService :
-    def __init__(self, user_repo : UserRepository, role_repo : RoleRepository, dept_repo : DepartmentRepository):
+    def __init__(self, user_repo : UserRepository, role_service : RoleService, dept_service : DepartmentService):
         self.user_repo = user_repo
-        self.role_repo = role_repo
-        self.dept_repo = dept_repo
+        self.role_service = role_service
+        self.dept_service = dept_service
 
     def signIn(self, userSchema : UserSchemaSignIn) :
         userFind = self.user_repo.select_user(nik=userSchema.nik)
@@ -37,12 +38,12 @@ class UserService :
         hashed_password = get_password_hash(userSchema.password)
 
 
-        roleFind = self.role_repo.select_role_by_role(userSchema.role)
+        roleFind = self.role_service.display_role_by_role(userSchema.role)
 
         if not roleFind :
             raise HTTPException(404, 'Role tidak terdaftar')
         
-        deptFind = self.dept_repo.select_dept_by_dept(userSchema.department)
+        deptFind = self.dept_service.display_dept_by_dept(userSchema.department)
 
         if not roleFind :
             raise HTTPException(404, 'Department tidak terdaftar')

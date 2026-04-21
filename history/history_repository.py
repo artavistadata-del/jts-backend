@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models.models import HistoryUpload
+from models.models.models import HistoryUpload
 
 class HistoryRepository :
     def __init__(self, db : Session):
@@ -7,7 +7,6 @@ class HistoryRepository :
 
     def select_history_by_nik(self, nik : str) :
         self.db.query(HistoryUpload).filter(HistoryUpload.users_nik == nik)
-
 
     def insert_history(self, history : HistoryUpload) :
         self.db.add(history)

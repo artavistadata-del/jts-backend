@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from config.config import get_db
-from models.models import Users
+from models.models.models import Users
 
 load_dotenv()
 

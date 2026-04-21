@@ -24,9 +24,10 @@ def get_db():
     finally :
         db.close()
 
-minio_client_instance = Minio(
-    MINIO_URL,
-    access_key=MINIO_ACCESS_KEY,
-    secret_key=MINIO_SECRET_KEY,
-    secure=False
-)
+def get_minio_client() :
+    return Minio(
+        MINIO_URL,
+        access_key=MINIO_ACCESS_KEY,
+        secret_key=MINIO_SECRET_KEY,
+        secure=False
+    )

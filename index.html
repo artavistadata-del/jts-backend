@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uji Coba Upload File Raksasa (Streaming)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h2 { margin-top: 0; color: #2c3e50; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; }
+        
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 5px;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #2980b9; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        
+        #statusBox {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #e8f4f8;
+            border: 1px solid #bce8f1;
+            display: none;
+            word-wrap: break-word;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .success { background-color: #dff0d8 !important; border-color: #d6e9c6 !important; color: #3c763d; }
+        .error { background-color: #f2dede !important; border-color: #ebccd1 !important; color: #a94442; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🚀 Test Streaming Upload</h2>
+    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+        Gunakan form ini untuk mengetes unggahan file > 100MB tanpa membuat browser macet.
+    </p>
+
+    <div class="form-group">
+        <label for="fileInput">Pilih File Excel:</label>
+        <input type="file" id="fileInput" accept=".xls,.xlsx" />
+    </div>
+
+    <button id="uploadBtn" onclick="mulaiUpload()">Mulai Upload</button>
+
+    <div id="statusBox">Menunggu aksi...</div>
+</div>
+
+<script>
+    // Konfigurasi Utama
+    const URL_BACKEND = 'http://localhost:8000/file/upload-file'; // Sesuaikan URL endpoint kamu
+    const TOKEN_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyMDAzMjAwMDIwMDQyMDAwIiwiZXhwIjoxNzc2NjgyMDU1fQ.RWf3jFVHVVgcPwCl38j4pITZvig70SuoI2S2eH1co24'; // WAJIB DIGANTI!
+
+    async function mulaiUpload() {
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusBox = document.getElementById('statusBox');
+
+        const file = fileInput.files[0];
+
+        // Validasi awal
+        if (!file) {
+            tampilkanStatus("Pilih file terlebih dahulu!", 'error');
+            return;
+        }
+
+        if (TOKEN_JWT === 'TOKEN_JWT_KAMU_DISINI') {
+             tampilkanStatus("⚠️ PERHATIAN: Kamu belum mengganti TOKEN_JWT di dalam kode HTML ini.", 'error');
+             return;
+        }
+
+        // Tampilan sedang loading
+        uploadBtn.disabled = true;
+        uploadBtn.innerText = "⏳ Sedang Mengunggah...";
+        tampilkanStatus("Menghubungkan ke server...\nFile: " + file.name + "\nUkuran: " + formatBytes(file.size), '');
+
+        try {
+            const response = await fetch(URL_BACKEND, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${TOKEN_JWT}`,
+                    // Browser biasanya tahu tipe filenya, jika tidak pakai default binary
+                    'Content-Type': file.type || 'application/octet-stream', 
+                    
+                    // --- CUSTOM HEADERS (WAJIB UNTUK STREAMING) ---
+                    'X-File-Name': file.name,
+                    'Content-Length': file.size.toString() 
+                },
+                // --- INI KUNCINYA: Mengirim objek File langsung, bukan FormData ---
+                body: file 
+            });
+
+            // Membaca balasan dari FastAPI
+            const responseData = await response.json();
+
+            if (response.ok) {
+                // HTTP 200 OK
+                tampilkanStatus("✅ UPLOAD SUKSES!\n\n" + JSON.stringify(responseData, null, 2), 'success');
+            } else {
+                // HTTP 4xx atau 5xx (Error dari FastAPI)
+                tampilkanStatus("❌ UPLOAD GAGAL (Kode: " + response.status + ")\n\n" + JSON.stringify(responseData, null, 2), 'error');
+            }
+
+        } catch (error) {
+            // Error jaringan (misalnya server FastAPI mati atau kena blokir CORS)
+            tampilkanStatus("🚨 KESALAHAN JARINGAN:\n" + error.message + "\n\nPastikan server FastAPI berjalan dan CORS sudah diatur.", 'error');
+        } finally {
+            // Kembalikan tombol ke semula
+            uploadBtn.disabled = false;
+            uploadBtn.innerText = "Mulai Upload";
+        }
+    }
+
+    // --- Fungsi Bantuan ---
+    
+    function tampilkanStatus(pesan, tipe) {
+        const statusBox = document.getElementById('statusBox');
+        statusBox.style.display = 'block';
+        statusBox.className = tipe; // 'success', 'error', atau kosong
+        statusBox.innerText = pesan;
+    }
+
+    function formatBytes(bytes, decimals = 2) {
+        if (!+bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    }
+</script>
+
+</body>
+</html>
