@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 # Import yang dibutuhkan (sesuaikan dengan struktur foldermu)
 from config.dependencies import get_user_service
 from core.security import get_current_user
+from models.models.models import Users
 from models.schemas.user_schema import UserSignIn as UserSchemaSignIn
 from models.schemas.user_schema import UserSignUp as UserSchemaSignUp
 from users.user_service import UserService
@@ -27,11 +28,11 @@ def sign_in(userData : UserSchemaSignIn, userService : UserService = Depends(get
 
 
 @router.get("/me")
-def get_me(userNow = Depends(get_current_user)):
+def get_me(userNow : Users = Depends(get_current_user)):
     return {
         "status": "berhasil",
-        "pesan": "Selamat datang di area rahasia!",
+        "pesan": "Selamat datang",
         "data": {
-            "nik": userNow,
+            "nik": userNow.nik,
         }
     }

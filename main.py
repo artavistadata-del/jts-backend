@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from config.config import engine
+from departments import department_route
 from models.models import models 
 from users import user_route
 from roles import role_route
+from cleaning import route_finance
 from fastapi.middleware.cors import CORSMiddleware
 
 from upload import minio_route
@@ -26,6 +28,8 @@ app.add_middleware(
 app.include_router(user_route.router)
 app.include_router(minio_route.router)
 app.include_router(role_route.router)
+app.include_router(department_route.router)
+app.include_router(route_finance.router)
 
 @app.get("/")
 def health_check():

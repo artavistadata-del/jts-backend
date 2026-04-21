@@ -1,23 +1,17 @@
 from fastapi import APIRouter, Depends
-
-# Import yang dibutuhkan (sesuaikan dengan struktur foldermu)
-from config.dependencies import get_user_service
+from config.dependencies import get_dept_service
 from core.security import get_current_user
-from models.schemas.user_schema import UserSignIn as UserSchemaSignIn
-from models.schemas.user_schema import UserSignUp as UserSchemaSignUp
-from users.user_service import UserService
+from departments.department_service import DepartmentService
 
 
 router = APIRouter(
-    prefix='/display',
-    tags=["Display"]
+    tags=["Department"]
 )
 
 
-@router.get("/signup", status_code=202)
-def sign_up(userData : UserSchemaSignUp, userService : UserService = Depends(get_user_service)) :
-    result = userService.signUp(userData)
-    return {"message": "Registrasi berhasil", "data": result}
+@router.get("/all-dept")
+def get_me(userNow = Depends(get_current_user), dept_service : DepartmentService = Depends(get_dept_service)):
+    return dept_service.display_all_dept()
 
 
 

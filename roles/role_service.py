@@ -9,6 +9,8 @@ class RoleService :
     def display_role_by_role(self, role : str) :
         return self.repo.select_role_by_role(role)
     
+    def display_role_by_id(self, role : int) :
+        return self.repo.select_role_by_id(role)
 
     def display_all_role(self):
         roles_find = self.repo.select_all_role()

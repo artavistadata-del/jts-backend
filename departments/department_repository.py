@@ -10,3 +10,9 @@ class DepartmentRepository :
     def select_dept_by_dept(self, dept_name : str) :
         return self.db.query(Departments.id_dept).filter(Departments.name_dept == dept_name).first()
     
+    def select_dept_by_id(self, dept_id : int) :
+        return self.db.query(Departments.id_dept).filter(Departments.id_dept == dept_id).first()
+
+    def select_all_dept(self) :
+        return self.db.query(Departments).all()
+    

@@ -5,8 +5,8 @@ from models.schemas.role_schema import RolesEnum
 class UserSignUp(BaseModel) :
     nik : str = Field(..., min_length=16, max_length=16)
     password : str = Field(..., min_length=8,max_length=72)
-    role : RolesEnum
-    department : DepartmentEnum
+    id_role : int
+    id_dept : int
 
 class UserSignIn(BaseModel):
     nik: str = Field(..., min_length=16, max_length=16)

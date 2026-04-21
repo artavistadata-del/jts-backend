@@ -5,9 +5,10 @@ python-multipart==0.0.9
 sqlacodegen
 
 # Data Processing (High Performance)
-polars==0.20.18
-fastexcel==0.10.1
+polars
+fastexcel
 pyarrow==23.0.1
+xlsx2csv
 
 # Task Queue & Broker
 celery==5.3.6

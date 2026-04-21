@@ -38,20 +38,20 @@ class UserService :
         hashed_password = get_password_hash(userSchema.password)
 
 
-        roleFind = self.role_service.display_role_by_role(userSchema.role)
+        roleFind = self.role_service.display_role_by_id(userSchema.id_role)
 
         if not roleFind :
             raise HTTPException(404, 'Role tidak terdaftar')
         
-        deptFind = self.dept_service.display_dept_by_dept(userSchema.department)
+        deptFind = self.dept_service.display_dept_by_id(userSchema.id_dept)
 
-        if not roleFind :
+        if not deptFind :
             raise HTTPException(404, 'Department tidak terdaftar')
 
         userModels = UserModels(
             nik = userSchema.nik,
             password = hashed_password,
-            id_roles = roleFind[0],
-            id_dept = deptFind[0]
+            id_roles = userSchema.id_role,
+            id_dept = userSchema.id_dept
         )
         return self.user_repo.insert_user(userModels)

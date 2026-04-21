@@ -7,7 +7,7 @@ class RoleRepository:
         self.db = db
 
     def select_role_by_id(self, id : int) :
-        return self.db.query(Roles).filter(Roles.id == id).first()
+        return self.db.query(Roles).filter(Roles.id_roles == id).first()
     
     def select_role_by_role(self, role : str) :
         return self.db.query(Roles.id_roles).filter(Roles.role == role).first()
