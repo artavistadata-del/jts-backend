@@ -16,12 +16,4 @@ class HistoryService :
             time_stamp = history_schema.time_stamp
     
         )
-        # history_models = HistoryUploadModels(
-        #     users_nik = history_schema.users_nik,
-        #     departments_id_dept = history_schema.id_dept,    
-        #     file_name = history_schema.file_name,
-        #     time_stamp = history_schema.time_stamp
-        # )
-        self.history_repo.insert_history(history_models)
-
-        return 'History Berhasil Ditambahkan'
+        return self.history_repo.insert_history(history_models)

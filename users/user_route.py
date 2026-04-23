@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends
-
-# Import yang dibutuhkan (sesuaikan dengan struktur foldermu)
+from fastapi import APIRouter, Depends, Query
 from config.dependencies import get_user_service
 from core.security import get_current_user
 from models.models.models import Users
-from models.schemas.user_schema import UserSignIn as UserSchemaSignIn
+from models.schemas.user_schema import UserSignIn as UserSchemaSignIn, UserUpdateSchema
 from models.schemas.user_schema import UserSignUp as UserSchemaSignUp
 from users.user_service import UserService
 
@@ -34,5 +32,70 @@ def get_me(userNow : Users = Depends(get_current_user)):
         "pesan": "Selamat datang",
         "data": {
             "nik": userNow.nik,
+            "nama" : userNow.nama,
+            "role" : userNow.roles.role,
+            "dept" : userNow.departments.name_dept
         }
+    }
+
+
+@router.get("/all-user", status_code=200)
+def get_all_users(
+    page: int = Query(1, ge=1, description="Halaman yang ingin ditampilkan"),
+    limit: int = Query(10, ge=1, le=100, description="Jumlah data per halaman"),
+    userService: UserService = Depends(get_user_service),
+    userNow: Users = Depends(get_current_user) # Uncomment ini jika endpoint ini wajib login
+):
+    result = userService.get_all_user(page=page, limit=limit)
+    return {
+        "status": "berhasil",
+        "message": "Data users berhasil diambil",
+        "data": result["data"],
+        "meta": result["meta"]
+    }
+
+
+@router.delete("/{nik}", status_code=200)
+def delete_user(
+    nik: str, 
+    userService: UserService = Depends(get_user_service),
+    userNow: Users = Depends(get_current_user)
+):
+    result = userService.delete_user(nik=nik)
+    return {
+        "status": "berhasil",
+        "message": f"User dengan NIK {nik} berhasil dihapus/dinonaktifkan",
+        "data": result
+    }
+
+
+@router.patch("/{nik}", status_code=200)
+def update_user_route(
+    nik: str, 
+    updateData: UserUpdateSchema, 
+    userService: UserService = Depends(get_user_service),
+    userNow: Users = Depends(get_current_user)
+):
+    result = userService.update_user(
+        nik=nik,
+        password=updateData.password,
+        id_role=updateData.id_role,
+        id_dept=updateData.id_dept
+    )
+    return {
+        "status": "berhasil",
+        "message": result
+    }
+
+@router.patch("/{nik}/reactivate", status_code=200)
+def reactivate_user_route(
+    nik: str, 
+    userService: UserService = Depends(get_user_service),
+    userNow: Users = Depends(get_current_user) # Uncomment jika butuh proteksi token
+):
+    result = userService.reactivate_user(nik=nik)
+    return {
+        "status": "berhasil",
+        "message": f"Akun dengan NIK {nik} berhasil diaktifkan kembali",
+        "data": result
     }

@@ -1,9 +1,13 @@
 import os
+from celery import Celery
 from dotenv import load_dotenv
 from minio import Minio
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+from config.celery_conf import celery_app
+from config.minio_conf import minio_client
 
 load_dotenv()
 
@@ -17,6 +21,9 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+
+
+
 def get_db():
     db = SessionLocal()
     try :
@@ -24,10 +31,8 @@ def get_db():
     finally :
         db.close()
 
-def get_minio_client() :
-    return Minio(
-        MINIO_URL,
-        access_key=MINIO_ACCESS_KEY,
-        secret_key=MINIO_SECRET_KEY,
-        secure=False
-    )
+def get_minio_client() -> Minio :
+    return minio_client
+
+def get_celery_client() -> Celery :
+    return celery_app

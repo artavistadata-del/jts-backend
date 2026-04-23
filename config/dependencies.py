@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from config.config import get_db, get_minio_client
 from core.security import get_current_user
 from departments.department_service import DepartmentService
+from finance.finance_repository import FinanceRepository
+from finance.finance_service import FinanceService
 from models.models.models import Users
 from departments.department_repository import DepartmentRepository
 from history.history_repository import HistoryRepository
@@ -28,6 +30,9 @@ def get_dept_repo(db: Session = Depends(get_db)) -> DepartmentRepository:
 def get_hist_repo(db: Session = Depends(get_db)) -> HistoryRepository:
     return HistoryRepository(db)
 
+def get_finance_repo(db: Session = Depends(get_db)) -> FinanceRepository:
+    return FinanceRepository(db)
+
 def get_role_service(role_repo : RoleRepository = Depends(get_role_repo)):
     return RoleService(role_repo)
 
@@ -50,3 +55,7 @@ def get_minio_repo(client : Minio = Depends(get_minio_client)) -> MinioRepositor
 
 def get_minio_service(minio_repo : MinioRepository = Depends(get_minio_repo), history_service : HistoryService = Depends(get_history_service)) -> MinioService:
     return MinioService(minio_repo, history_service)
+
+def get_finance_service(finance_repo : FinanceRepository = Depends(get_finance_repo)) -> FinanceService:
+    return FinanceService(finance_repo)
+
