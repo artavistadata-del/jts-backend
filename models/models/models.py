@@ -1,8 +1,8 @@
 from typing import Optional
 import datetime
 import enum
-
-from sqlalchemy import Date, Enum, Float, ForeignKey, Integer, String, Boolean
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String, Boolean
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
@@ -15,9 +15,13 @@ class RoleEnum(str, enum.Enum):
     ADMIN = 'ADMIN'
 
 class StatusEnum(str, enum.Enum):
-    PENDING = 'PENDING'
-    APPROVED = 'APPROVED'
-    REJECTED = 'REJECTED'
+    ANALYZING = "ANALYZING"
+    AWAITING_PREVIEW = "AWAITING_PREVIEW"
+    PROCESSING_INSERT = "PROCESSING_INSERT"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    FAILED = "FAILED"
 
 class Departments(Base):
     __tablename__ = 'departments'
@@ -84,6 +88,7 @@ class HistoryUpload(Base):
     departments_history: Mapped['Departments'] = relationship('Departments', back_populates='history_upload')
     finance_data: Mapped[list['FactFinance']] = relationship('FactFinance', back_populates='history', cascade="all, delete-orphan")
 
+    analysis_result = Column(JSONB, nullable=True)
 class FactFinance(Base):
     __tablename__ = 'fact_finance'
     __table_args__ = {'schema': 'oltp_tes'}

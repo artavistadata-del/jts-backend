@@ -137,4 +137,5 @@ def process_finance_excel(raw_bytes: io.BytesIO, history_id: int) -> list[dict]:
         pl.lit(history_id).alias("id_history")
     ])
 
-    return df_final.to_dicts()
+    # return df_final.to_dicts()
+    return df_final
