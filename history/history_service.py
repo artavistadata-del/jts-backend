@@ -17,3 +17,22 @@ class HistoryService :
     
         )
         return self.history_repo.insert_history(history_models)
+    
+
+    def get_history_paginated(self, nik: str, page: int = 1, size: int = 10):
+
+        if page < 1:
+            page = 1
+        if size < 1:
+            size = 10
+        skip = (page - 1) * size
+        
+        items, total = self.history_repo.select_history_by_nik(nik, skip=skip, limit=size)
+        
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "size": size,
+            "total_pages": (total + size - 1) // size  # Pembulatan ke atas
+        }

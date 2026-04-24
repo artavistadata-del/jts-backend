@@ -77,8 +77,9 @@ def check_upload_status(history_id: int, db: Session = Depends(get_db)):
 @router.post("/upload")
 async def upload_finance_data(
     file: UploadFile = File(...),
-    id_dept: int = Form(...),
-    users_nik: str = Form(...), 
+    # id_dept: int = Form(...),
+    # users_nik: str = Form(...), 
+    userNow : Users = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     # Validasi format file
@@ -88,7 +89,8 @@ async def upload_finance_data(
     # Generate nama file unik untuk mencegah bentrok di MinIO
     file_ext = file.filename.split(".")[-1]
     safe_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}.{file_ext}"
-    bucket_name = f"raw-dept-{id_dept}"
+    # bucket_name = f"raw-dept-{id_dept}"
+    bucket_name = f"raw-dept-{userNow.id_dept}"
     
     try:
         # Pastikan bucket tersedia di MinIO
@@ -104,8 +106,10 @@ async def upload_finance_data(
 
     # Buat record history baru dengan status awal ANALYZING
     new_history = HistoryUpload(
-        users_nik=users_nik,
-        id_dept=id_dept,
+        # users_nik=users_nik,
+        users_nik=userNow.nik,
+        # id_dept=id_dept,
+        id_dept=userNow.id_dept,
         id_roles=1, # Default role STAFF
         file_name=safe_filename,
         status=StatusEnum.ANALYZING
@@ -115,7 +119,7 @@ async def upload_finance_data(
     db.refresh(new_history)
 
     # Pemicu Celery Task 1 (Analisis/Preview) secara asinkron
-    analyze_excel_task.delay(new_history.id_history_upload, safe_filename, id_dept)
+    analyze_excel_task.delay(new_history.id_history_upload, safe_filename, userNow.id_dept)
 
     return {
         "status": "success",

@@ -30,6 +30,7 @@ def get_dept_repo(db: Session = Depends(get_db)) -> DepartmentRepository:
 def get_hist_repo(db: Session = Depends(get_db)) -> HistoryRepository:
     return HistoryRepository(db)
 
+
 def get_finance_repo(db: Session = Depends(get_db)) -> FinanceRepository:
     return FinanceRepository(db)
 

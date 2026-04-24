@@ -2,6 +2,7 @@
 
 import io
 import polars as pl
+from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from config.minio_conf import minio_client
 from config.config import engine 
@@ -30,59 +31,13 @@ class BaseCleaningService:
         return cleanser_func(raw_bytes, history_id)
 
     # # ==========================================
-    # # TAHAP 1: PREVIEW (Cek Replace vs Insert)
-    # # ==========================================
-    # def execute_analyze(self, history_id: int, filename: str, id_dept: int):
-    #     record = self.db.query(HistoryUpload).get(history_id)
-    #     config = get_dept_config(id_dept)
-        
-    #     try:
-    #         # 1. Bersihkan Excel (Dapat DataFrame)
-    #         df_excel = self._download_and_clean(history_id, filename, id_dept, config)
-            
-    #         # 2. Ambil Kunci Dinamis dari Config
-    #         keys = config["unique_keys"]
-    #         keys_str = ", ".join(keys)
-    #         table_name = config["table_name"]
-            
-    #         # 3. Kueri DB (Hanya ambil kolom kuncinya saja agar hemat RAM)
-    #         query = f"SELECT {keys_str} FROM {table_name}"
-    #         df_db = pl.read_database(query=query, connection=engine)
-
-    #         # 4. Polars Diffing (Perbandingan Cepat)
-    #         if len(df_db) > 0:
-    #             df_replace = df_excel.join(df_db, on=keys, how="inner")
-    #             df_insert = df_excel.join(df_db, on=keys, how="anti")
-    #         else:
-    #             df_replace, df_insert = [], df_excel
-
-    #         # 5. Simpan Hasil
-    #         record.analysis_result = {
-    #             "dept_name": config["name"],
-    #             "total_insert": len(df_insert),
-    #             "total_replace": len(df_replace)
-    #         }
-    #         record.status = StatusEnum.AWAITING_PREVIEW
-    #         self.db.commit()
-
-    #     except Exception as e:
-    #         self.db.rollback()
-    #         record.status = StatusEnum.FAILED
-    #         record.analysis_result = {"error": str(e)}
-    #         self.db.commit()
-    #         raise e
-
-    # # ==========================================
     # # TAHAP 1.1: PREVIEW (Cek Replace vs Insert)
     # # ==========================================
     def execute_analyze(self, history_id: int, filename: str, id_dept: int):
-        # 1. Ambil Config & Data Excel
         config = get_dept_config(id_dept)
         df_excel = self._download_and_clean(history_id, filename, id_dept, config)
         
-        # 2. Ambil Data dari Database (Hanya kolom kunci + kolom value)
         keys = config["unique_keys"]
-        # 2. Perbarui Kueri SQL (Tambahkan kolom-kolom kategori)
         table_name = config["table_name"]
         query = f"""
             SELECT 
@@ -98,7 +53,6 @@ class BaseCleaningService:
         df_db = df_db.with_columns([
             pl.col("bulan").cast(pl.Date),
             pl.col("value").cast(pl.Float64),
-            # Semua kolom kategori dan nama dipaksa jadi String
             pl.col("account_name").cast(pl.String),
             pl.col("report_type").cast(pl.String),
             pl.col("idx_category").cast(pl.String),
@@ -197,8 +151,18 @@ class BaseCleaningService:
             # 4. Tembak ke Database
             self.db.execute(upsert_stmt)
             
-            record.status = StatusEnum.PENDING 
+            # record.status = StatusEnum.PENDING 
+            record.status = StatusEnum.APPROVED
             self.db.commit()
+
+            try:
+                # Gunakan text() untuk query mentah
+                self.db.execute(text("REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;"))
+                self.db.commit() 
+                print("Materialized View refreshed successfully.")
+            except Exception as mv_e:
+                self.db.rollback() 
+                print(f"Warning: Materialized View refresh failed: {mv_e}")
 
         except Exception as e:
             self.db.rollback()
