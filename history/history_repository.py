@@ -27,5 +27,4 @@ class HistoryRepository :
                        .offset(skip)\
                        .limit(limit)\
                        .all()
-        
         return results, total_count
