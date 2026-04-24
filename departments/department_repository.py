@@ -1,6 +1,7 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from models.models.models import Departments
+from models.models.models import Departments, Users
 
 
 class DepartmentRepository :
@@ -15,4 +16,26 @@ class DepartmentRepository :
 
     def select_all_dept(self) :
         return self.db.query(Departments).all()
+    
+
+    def insert_dept(self, dept : Departments) :
+        self.db.add(dept)
+        self.db.commit()
+        self.db.refresh(dept)
+
+        return "Berhasil"
+    
+
+    def get_staff_count_per_dept(self):
+        results = (
+            self.db.query(
+                Departments.name_dept.label("department"),
+                func.count(Users.idusers).label("jumlah_staff") # <-- func dipanggil di sini
+            )
+            .outerjoin(Users, Departments.id_dept == Users.id_dept)
+            .group_by(Departments.id_dept, Departments.name_dept)
+            .order_by(Departments.name_dept.asc())
+            .all()
+        )
+        return results
     

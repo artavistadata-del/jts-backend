@@ -1,6 +1,8 @@
 from fastapi import HTTPException
 
 from departments.department_repository import DepartmentRepository
+from models.models.models import Departments
+from models.schemas.department_schema import DepartmentsInsertSchema
 
 
 class DepartmentService :
@@ -30,3 +32,31 @@ class DepartmentService :
             "message": "Berhasil mengambil data department",
             "data": hasil_format
         }
+    
+
+    def add_dept(self, dept : DepartmentsInsertSchema) :
+        find_dept = self.display_dept_by_dept(dept.dept_name.upper())
+
+        print(find_dept)
+
+        if find_dept :
+            raise HTTPException(302, " Department Sudah Ada")
+
+        dept_model = Departments(
+                name_dept = dept.dept_name
+        )
+        return self.repo.insert_dept(dept_model)
+
+
+    def get_department_staff_summary(self):
+        data = self.dept_repo.get_staff_count_per_dept()
+        
+        # Mapping hasil query SQLAlchemy (Row) menjadi list of dictionary
+        summary_list = []
+        for row in data:
+            summary_list.append({
+                "department": row.department,
+                "jumlah_staff": row.jumlah_staff
+            })
+            
+        return summary_list
