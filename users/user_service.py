@@ -75,8 +75,8 @@ class UserService :
         user_list = []
         for user in users:
             user_list.append({
-                # "idusers": user.idusers,
                 "nik": user.nik,
+                "name" : user.nama,
                 "is_active": user.is_active,
                 "role": {
                     "id": user.id_roles,
@@ -101,7 +101,7 @@ class UserService :
         }
     
 
-    def delete_user(self, nik: str):
+    def nonactive_user(self, nik: str):
         userFind = self.user_repo.select_user(nik=nik)
         if not userFind:
             raise HTTPException(status_code=404, detail="User tidak ditemukan")
@@ -118,8 +118,8 @@ class UserService :
     
 
     def update_user(self, nik: str, password: Optional[str] = None, 
-                    id_role: Optional[int] = None, id_dept: Optional[int] = None):
-        
+                    id_role: Optional[int] = None, id_dept: Optional[int] = None, nama : Optional[str] = None):
+        print(nik)
         user = self.user_repo.select_user(nik)
         if not user:
             raise HTTPException(404, "User tidak ditemukan")
@@ -139,10 +139,12 @@ class UserService :
                 raise HTTPException(404, "Department tidak ditemukan")
             user.id_dept = id_dept
 
+        if nama :
+            user.nama = nama
+        print(nik)
         return self.user_repo.update_user(user)
     
 
-    # Tambahkan di dalam class UserService
     def reactivate_user(self, nik: str):
         userFind = self.user_repo.select_user(nik=nik)
         if not userFind:

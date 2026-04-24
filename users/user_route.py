@@ -44,7 +44,7 @@ def get_all_users(
     page: int = Query(1, ge=1, description="Halaman yang ingin ditampilkan"),
     limit: int = Query(10, ge=1, le=100, description="Jumlah data per halaman"),
     userService: UserService = Depends(get_user_service),
-    userNow: Users = Depends(get_current_user) # Uncomment ini jika endpoint ini wajib login
+    userNow: Users = Depends(get_current_user) 
 ):
     result = userService.get_all_user(page=page, limit=limit)
     return {
@@ -54,14 +54,28 @@ def get_all_users(
         "meta": result["meta"]
     }
 
+@router.patch("/up-pw", status_code=200)
+def update_user(
+    updateData: UserUpdateSchema, 
+    userService: UserService = Depends(get_user_service),
+    userNow: Users = Depends(get_current_user)
+):
+    result = userService.update_user(
+        nik=userNow.nik,
+        password=updateData.password
+    )
+    return {
+        "status": "Berhasil",
+        "message": result
+    }
 
 @router.delete("/{nik}", status_code=200)
-def delete_user(
+def nonactive_user(
     nik: str, 
     userService: UserService = Depends(get_user_service),
     userNow: Users = Depends(get_current_user)
 ):
-    result = userService.delete_user(nik=nik)
+    result = userService.nonactive_user(nik=nik)
     return {
         "status": "berhasil",
         "message": f"User dengan NIK {nik} berhasil dihapus/dinonaktifkan",
@@ -80,18 +94,21 @@ def update_user_route(
         nik=nik,
         password=updateData.password,
         id_role=updateData.id_role,
-        id_dept=updateData.id_dept
+        id_dept=updateData.id_dept,
+        nama= updateData.name
     )
     return {
         "status": "berhasil",
         "message": result
     }
 
+
+
 @router.patch("/{nik}/reactivate", status_code=200)
 def reactivate_user_route(
     nik: str, 
     userService: UserService = Depends(get_user_service),
-    userNow: Users = Depends(get_current_user) # Uncomment jika butuh proteksi token
+    userNow: Users = Depends(get_current_user)
 ):
     result = userService.reactivate_user(nik=nik)
     return {
@@ -99,3 +116,4 @@ def reactivate_user_route(
         "message": f"Akun dengan NIK {nik} berhasil diaktifkan kembali",
         "data": result
     }
+

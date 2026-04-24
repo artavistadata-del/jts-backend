@@ -17,6 +17,7 @@ class UserSignIn(BaseModel):
 
 
 class UserUpdateSchema(BaseModel):
+    name: Optional[str] = Field(None, min_length=8)
     password: Optional[str] = Field(None, min_length=8)
     id_role: Optional[int] = None
     id_dept: Optional[int] = None
