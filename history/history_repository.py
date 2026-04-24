@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from models.models.models import HistoryUpload
 
 class HistoryRepository :
@@ -15,8 +15,10 @@ class HistoryRepository :
         return history
     
     def select_history_by_nik(self, nik: str, skip: int = 0, limit: int = 10):
-        query = self.db.query(HistoryUpload).filter(HistoryUpload.users_nik == nik)
-        
+# Gunakan .defer() untuk mengabaikan kolom analysis_result saat query
+        query = self.db.query(HistoryUpload)\
+                    .filter(HistoryUpload.users_nik == nik)\
+                    .options(defer(HistoryUpload.analysis_result))        
         # Menghitung total data untuk keperluan metadata pagination di frontend
         total_count = query.count()
         

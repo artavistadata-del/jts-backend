@@ -70,38 +70,102 @@ class BaseCleaningService:
         df_excel = df_excel.with_columns([pl.col(c).fill_null("") for c in string_keys])
         df_db = df_db.with_columns([pl.col(c).fill_null("") for c in string_keys])
         # 3. Join Excel dengan Database untuk Deteksi Perubahan
-        # Kita beri suffix '_db' pada kolom value dari database agar tidak bentrok
+
+
+
+        # ===============================
+        # Ini ini kalo mau nampilkan preview
+        # ===============================
+        
+        # 3. Join Excel dengan Database untuk Deteksi Perubahan
         df_compare = df_excel.join(df_db, on=keys, how="left", suffix="_db")
 
         # A. Deteksi Data Baru (Insert)
-        # Ciri: Tidak ditemukan di DB (kolom value_db nya null)
-        total_insert = df_compare.filter(pl.col("value_db").is_null()).height
+        df_insert = df_compare.filter(pl.col("value_db").is_null())
+        total_insert = df_insert.height
 
         # B. Deteksi Data Berubah (Replace/Update)
-        # Ciri: Ada di DB (value_db tidak null) TAPI nilainya beda dengan Excel
-        total_replace = df_compare.filter(
+        df_replace = df_compare.filter(
             (pl.col("value_db").is_not_null()) & 
             (pl.col("value") != pl.col("value_db"))
-        ).height
+        )
+        total_replace = df_replace.height
 
         # C. Deteksi Data Sama (Unchanged/Ignored)
-        # Ciri: Ada di DB dan nilainya sama persis
         total_unchanged = df_compare.filter(
             (pl.col("value_db").is_not_null()) & 
             (pl.col("value") == pl.col("value_db"))
         ).height
 
+        # ==========================================
+        # SIAPKAN PREVIEW DATA (Max 10 Baris)
+        # ==========================================
+        original_cols = df_excel.columns # Ambil nama kolom asli (buang kolom '_db')
+        
+        # Kita cast ke pl.String agar aman saat diubah menjadi JSON (mencegah error format Date)
+        preview_insert = (
+            df_insert.select(original_cols)
+            .head(10)
+            .cast(pl.String)
+            .to_dicts()
+        )
+        
+        preview_replace = (
+            df_replace.select(original_cols)
+            .head(10)
+            .cast(pl.String)
+            .to_dicts()
+        )
+
         # 4. Simpan Hasil ke History Upload
         record = self.db.query(HistoryUpload).filter(HistoryUpload.id_history_upload == history_id).first()
         record.analysis_result = {
-            "dept_name": config["dept_name"],
+            "dept_name": config.get("dept_name", "Unknown"),
             "total_insert": total_insert,
             "total_replace": total_replace,
-            "total_unchanged": total_unchanged, # Beri tahu user ada data yang diabaikan
-            "total_row_excel": df_excel.height
+            "total_unchanged": total_unchanged,
+            "total_row_excel": df_excel.height,
+            "preview_insert": preview_insert,
+            "preview_replace": preview_replace 
         }
         record.status = StatusEnum.AWAITING_PREVIEW
         self.db.commit()
+
+        # # ===============================
+        # # Ini ini kalo mau nampilkan count aja
+        # # ===============================
+        # # Kita beri suffix '_db' pada kolom value dari database agar tidak bentrok
+        # df_compare = df_excel.join(df_db, on=keys, how="left", suffix="_db")
+
+        # # A. Deteksi Data Baru (Insert)
+        # # Ciri: Tidak ditemukan di DB (kolom value_db nya null)
+        # total_insert = df_compare.filter(pl.col("value_db").is_null()).height
+
+        # # B. Deteksi Data Berubah (Replace/Update)
+        # # Ciri: Ada di DB (value_db tidak null) TAPI nilainya beda dengan Excel
+        # total_replace = df_compare.filter(
+        #     (pl.col("value_db").is_not_null()) & 
+        #     (pl.col("value") != pl.col("value_db"))
+        # ).height
+
+        # # C. Deteksi Data Sama (Unchanged/Ignored)
+        # # Ciri: Ada di DB dan nilainya sama persis
+        # total_unchanged = df_compare.filter(
+        #     (pl.col("value_db").is_not_null()) & 
+        #     (pl.col("value") == pl.col("value_db"))
+        # ).height
+
+        # # 4. Simpan Hasil ke History Upload
+        # record = self.db.query(HistoryUpload).filter(HistoryUpload.id_history_upload == history_id).first()
+        # record.analysis_result = {
+        #     "dept_name": config["dept_name"],
+        #     "total_insert": total_insert,
+        #     "total_replace": total_replace,
+        #     "total_unchanged": total_unchanged, # Beri tahu user ada data yang diabaikan
+        #     "total_row_excel": df_excel.height
+        # }
+        # record.status = StatusEnum.AWAITING_PREVIEW
+        # self.db.commit()
 
     # ==========================================
     # TAHAP 2: COMMIT (Upsert Permanen)

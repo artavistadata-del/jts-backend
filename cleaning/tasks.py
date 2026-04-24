@@ -48,9 +48,7 @@ def analyze_excel_task(self, history_id: int, filename: str, id_dept: int):
 
     except Exception as e:
         logger.error(f"Gagal Analisis ID {history_id}: {str(e)}")
-        
-        # Jika gagal karena alasan sistem (koneksi terputus/DB sibuk), coba lagi otomatis
-        # countdown=60 berarti tunggu 1 menit sebelum mencoba ulang
+    
         raise self.retry(exc=e, countdown=60) 
         
     finally:
