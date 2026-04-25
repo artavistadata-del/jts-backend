@@ -30,7 +30,7 @@ class DepartmentRepository :
         results = (
             self.db.query(
                 Departments.name_dept.label("department"),
-                func.count(Users.idusers).label("jumlah_staff") # <-- func dipanggil di sini
+                func.count(Users.idusers).label("jumlah_staff")
             )
             .outerjoin(Users, Departments.id_dept == Users.id_dept)
             .group_by(Departments.id_dept, Departments.name_dept)

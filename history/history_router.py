@@ -7,7 +7,10 @@ from history.history_service import HistoryService
 from models.models.models import Users
 # Import database session, models, dan schemas kamu di sini
 
-router = APIRouter(prefix="/history", tags=["History"])
+router = APIRouter(
+        prefix="/history",
+        tags=["History"]
+    )
 
 
 @router.get("/all-transaction")

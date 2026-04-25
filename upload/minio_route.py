@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from cleaning.tasks import process_cleaning_task
+from cleaning.tasks import analyze_excel_task, process_cleaning_task
 from core.security import get_current_user 
 from departments.department_service import DepartmentService
 from models.models.models import Users
@@ -9,11 +9,11 @@ from upload.minio_service import MinioService
 from config.dependencies import get_dept_service, get_minio_service, get_minio_service 
 
 router = APIRouter(
-    prefix='/file',
-    tags=["File"]
+    prefix='/upload',
+    tags=["Upload"]
 )
 
-@router.post("/upload-file")
+@router.post("/upload")
 async def upload_payroll_excel(
     file: UploadFile = File(...),
     userNow: Users = Depends(get_current_user),
@@ -38,9 +38,9 @@ async def upload_payroll_excel(
     if result.get("status") == "error":
         raise HTTPException(status_code=500, detail=result["message"])
     
-    # return result.get('data')
-
-    process_cleaning_task.delay(result.get('data')[0], result.get('data')[1], userNow.id_dept)
+    analyze_excel_task.delay(new_history.id_history_upload, safe_filename, userNow.id_dept)
+    
+    # process_cleaning_task.delay(result.get('data')[0], result.get('data')[1], userNow.id_dept)
 
     return 'berhasil'
 

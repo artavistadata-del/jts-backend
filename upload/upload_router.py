@@ -12,8 +12,7 @@ from models.models.models import HistoryUpload, StatusEnum, Users
 from models.schemas.finance_schema import FactFinanceUpdate
 from config.minio_conf import minio_client
 
-router = APIRouter(prefix="/finance", tags=["Finance"])
-
+router = APIRouter(prefix="/up", tags=["UP"])
 @router.patch("/{id_fact}")
 def update_fact_finance(
     id_fact: int,
@@ -77,8 +76,6 @@ def check_upload_status(history_id: int, db: Session = Depends(get_db)):
 @router.post("/upload")
 async def upload_finance_data(
     file: UploadFile = File(...),
-    # id_dept: int = Form(...),
-    # users_nik: str = Form(...), 
     userNow : Users = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -89,7 +86,6 @@ async def upload_finance_data(
     # Generate nama file unik untuk mencegah bentrok di MinIO
     file_ext = file.filename.split(".")[-1]
     safe_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}.{file_ext}"
-    # bucket_name = f"raw-dept-{id_dept}"
     bucket_name = f"raw-dept-{userNow.id_dept}"
     
     try:

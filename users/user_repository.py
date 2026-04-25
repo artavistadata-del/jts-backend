@@ -12,8 +12,11 @@ class UserRepository :
         self.db.refresh(user)
         return "User Berhasil Ditambahkan"
     
-    def select_user(self, nik : str) :
+    def select_user_by_nik(self, nik : str) :
         return self.db.query(Users).filter(Users.nik == nik).first()
+    
+    def select_user_by_id(self, id : int) :
+        return self.db.query(Users).filter(Users.idusers == id).first()
     
     def select_all_user_paginated(self, skip: int, limit: int):
         total_data = self.db.query(Users).count()
@@ -32,8 +35,8 @@ class UserRepository :
         return total_data, users
     
 
-    def deactivate_user(self, nik: str):
-        user = self.select_user(nik)
+    def deactivate_user(self, id_user : int):
+        user = self.select_user_by_id(id_user)
         if user:
             user.is_active = False
             self.db.commit()
@@ -56,8 +59,8 @@ class UserRepository :
         return "Data User Berhasil Diperbarui"
     
 
-    def reactivate_user(self, nik: str):
-        user = self.select_user(nik)
+    def reactivate_user(self, id_user : int):
+        user = self.select_user_by_id(id_user)
         
         if user:
             user.is_active = True

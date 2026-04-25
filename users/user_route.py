@@ -1,22 +1,16 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from config.dependencies import get_user_service
-from core.security import get_current_user
+from core.security import RoleChecker, get_current_user
 from models.models.models import Users
-from models.schemas.user_schema import UserSignIn as UserSchemaSignIn, UserUpdateSchema
+from models.schemas.user_schema import UserMeResponse, UserSignIn as UserSchemaSignIn, UserUpdateSchema
 from models.schemas.user_schema import UserSignUp as UserSchemaSignUp
 from users.user_service import UserService
 
 
 router = APIRouter(
-    prefix='/users',
+    prefix='/v1/users',
     tags=["Users"]
 )
-
-
-@router.post("/signup", status_code=202)
-def sign_up(userData : UserSchemaSignUp, userService : UserService = Depends(get_user_service)) :
-    result = userService.signUp(userData)
-    return {"message": "Registrasi berhasil", "data": result}
 
 
 @router.post("/signin")
@@ -25,26 +19,32 @@ def sign_in(userData : UserSchemaSignIn, userService : UserService = Depends(get
     return {"message": "sign in berhasil", "data": result}
 
 
-@router.get("/me")
+@router.get("/me", response_model=UserMeResponse)
 def get_me(userNow : Users = Depends(get_current_user)):
     return {
         "status": "berhasil",
         "pesan": "Selamat datang",
-        "data": {
-            "nik": userNow.nik,
-            "nama" : userNow.nama,
-            "role" : userNow.roles.role,
-            "dept" : userNow.departments.name_dept
-        }
+        "data": userNow
     }
 
+# ADMIN ONLY
+allow_admin_only = RoleChecker(["ADMIN"])
 
-@router.get("/all-user", status_code=200)
+@router.post("/signup", status_code=202)
+def sign_up(userData : UserSchemaSignUp,
+            userService : UserService = Depends(get_user_service),
+            # userNow : Users = Depends(allow_admin_only)
+    ) :
+    result = userService.signUp(userData)
+    return {"message": "Registrasi berhasil", "data": result}
+
+
+@router.get("/all", status_code=200)
 def get_all_users(
     page: int = Query(1, ge=1, description="Halaman yang ingin ditampilkan"),
     limit: int = Query(10, ge=1, le=100, description="Jumlah data per halaman"),
     userService: UserService = Depends(get_user_service),
-    userNow: Users = Depends(get_current_user) 
+    userNow: Users = Depends(allow_admin_only) 
 ):
     result = userService.get_all_user(page=page, limit=limit)
     return {
@@ -54,66 +54,58 @@ def get_all_users(
         "meta": result["meta"]
     }
 
-@router.patch("/up-pw", status_code=200)
+@router.patch("/{user_id}/update", status_code=200)
 def update_user(
+    user_id: int,
     updateData: UserUpdateSchema, 
     userService: UserService = Depends(get_user_service),
     userNow: Users = Depends(get_current_user)
 ):
+    
+    if userNow.roles.role != "ADMIN" and userNow.idusers != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Kamu tidak punya akses untuk mengubah data orang lain!"
+        )
+    
+    target_user = userService.get_user_by_id(user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
     result = userService.update_user(
-        nik=userNow.nik,
+        nik=target_user.nik,
         password=updateData.password
     )
+
     return {
         "status": "Berhasil",
-        "message": result
+        "message": f"Berhasil Update Data {target_user.nama}"
     }
 
-@router.delete("/{nik}", status_code=200)
+
+@router.patch("/{id_user}/nonactive", status_code=200)
 def nonactive_user(
-    nik: str, 
+    id_user : int, 
     userService: UserService = Depends(get_user_service),
-    userNow: Users = Depends(get_current_user)
+    userNow: Users = Depends(allow_admin_only)
 ):
-    result = userService.nonactive_user(nik=nik)
+    result = userService.nonactive_user(id_user)
     return {
         "status": "berhasil",
-        "message": f"User dengan NIK {nik} berhasil dihapus/dinonaktifkan",
-        "data": result
+        "message": f"User dengan NIK {result['nik']} berhasil dinonaktifkan"
     }
 
 
-@router.patch("/{nik}", status_code=200)
-def update_user_route(
-    nik: str, 
-    updateData: UserUpdateSchema, 
-    userService: UserService = Depends(get_user_service),
-    userNow: Users = Depends(get_current_user)
-):
-    result = userService.update_user(
-        nik=nik,
-        password=updateData.password,
-        id_role=updateData.id_role,
-        id_dept=updateData.id_dept,
-        nama= updateData.name
-    )
-    return {
-        "status": "berhasil",
-        "message": result
-    }
-
-
-
-@router.patch("/{nik}/reactivate", status_code=200)
+@router.patch("/{id_user}/reactivate", status_code=200)
 def reactivate_user_route(
-    nik: str, 
+    id_user: int, 
     userService: UserService = Depends(get_user_service),
-    userNow: Users = Depends(get_current_user)
+    userNow: Users = Depends(allow_admin_only)
 ):
-    result = userService.reactivate_user(nik=nik)
+    result = userService.reactivate_user(id_user)
     return {
         "status": "berhasil",
-        "message": f"Akun dengan NIK {nik} berhasil diaktifkan kembali",
+        "message": f"Akun dengan NIK {result['nik']} berhasil diaktifkan kembali",
         "data": result
     }
 

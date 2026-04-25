@@ -19,13 +19,13 @@ class UserService :
         self.dept_service = dept_service
 
     def signIn(self, userSchema : UserSchemaSignIn) :
-        userFind = self.user_repo.select_user(nik=userSchema.nik)
+        userFind = self.user_repo.select_user_by_nik(nik=userSchema.nik)
 
         if not userFind :
             raise HTTPException(404, "user tidak ditemukan")
 
         if userFind.is_active == False :
-            raise HTTPException(400, 'akun di non aktifkan')
+            raise HTTPException(403, 'akun di non aktifkan')
         
         is_password_correct = verify_password(userSchema.password, userFind.password)
 
@@ -37,7 +37,7 @@ class UserService :
         return {"access_token": access_token, "token_type": "bearer"}
     
     def signUp(self, userSchema : UserSchemaSignUp) :
-        userFind = self.user_repo.select_user(nik=userSchema.nik)
+        userFind = self.user_repo.select_user_by_nik(nik=userSchema.nik)
         if userFind :
             raise HTTPException(302, "NIK sudah terdaftar")
 
@@ -75,6 +75,7 @@ class UserService :
         user_list = []
         for user in users:
             user_list.append({
+                "id_user" : user.idusers,
                 "nik": user.nik,
                 "name" : user.nama,
                 "is_active": user.is_active,
@@ -101,26 +102,26 @@ class UserService :
         }
     
 
-    def nonactive_user(self, nik: str):
-        userFind = self.user_repo.select_user(nik=nik)
+    def nonactive_user(self, id_user : int):
+        userFind = self.user_repo.select_user_by_id(id_user)
         if not userFind:
             raise HTTPException(status_code=404, detail="User tidak ditemukan")
         
         if not userFind.is_active:
             raise HTTPException(status_code=400, detail="User sudah dalam keadaan non-aktif")
 
-        is_deleted = self.user_repo.deactivate_user(nik)
+        is_deleted = self.user_repo.deactivate_user(id_user=id_user)
         
         if not is_deleted:
             raise HTTPException(status_code=500, detail="Gagal menonaktifkan user")
 
-        return {"nik": nik, "status": "non-aktif"}
+        return {"nik": userFind.nik , "status": "non-aktif"}
     
 
     def update_user(self, nik: str, password: Optional[str] = None, 
                     id_role: Optional[int] = None, id_dept: Optional[int] = None, nama : Optional[str] = None):
         print(nik)
-        user = self.user_repo.select_user(nik)
+        user = self.user_repo.select_user_by_nik(nik)
         if not user:
             raise HTTPException(404, "User tidak ditemukan")
 
@@ -145,17 +146,21 @@ class UserService :
         return self.user_repo.update_user(user)
     
 
-    def reactivate_user(self, nik: str):
-        userFind = self.user_repo.select_user(nik=nik)
+    def reactivate_user(self, id_user : int):
+        userFind = self.user_repo.select_user_by_id(id_user)
         if not userFind:
             raise HTTPException(status_code=404, detail="User tidak ditemukan")
         
         if userFind.is_active:
             raise HTTPException(status_code=400, detail="User ini sudah dalam keadaan aktif")
 
-        is_reactivated = self.user_repo.reactivate_user(nik)
+        is_reactivated = self.user_repo.reactivate_user(id_user)
         
         if not is_reactivated:
             raise HTTPException(status_code=500, detail="Gagal mengaktifkan kembali user")
 
-        return {"nik": nik, "status": "aktif"}
+        return {"nik": userFind.nik, "status": "aktif"}
+
+
+    def get_user_by_id(self, id : int) :
+        return self.user_repo.select_user_by_id(id)

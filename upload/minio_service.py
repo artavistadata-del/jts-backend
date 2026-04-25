@@ -33,14 +33,8 @@ class MinioService:
         
         success_upload = self.history_service.add_history(history_schema=history_schema)
 
-        # return success_upload.id_history_upload, file_name
         result =  success_upload.id_history_upload, file_name
 
-        # return {
-        #     "status": "success",
-        #     "message": "File berhasil diunggah dan histori dicatat.",
-        #     "data": minio_data
-        # }
         return {
             "status": "success",
             "message": "File berhasil diunggah dan histori dicatat.",

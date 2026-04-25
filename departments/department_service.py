@@ -49,9 +49,8 @@ class DepartmentService :
 
 
     def get_department_staff_summary(self):
-        data = self.dept_repo.get_staff_count_per_dept()
+        data = self.repo.get_staff_count_per_dept()
         
-        # Mapping hasil query SQLAlchemy (Row) menjadi list of dictionary
         summary_list = []
         for row in data:
             summary_list.append({
