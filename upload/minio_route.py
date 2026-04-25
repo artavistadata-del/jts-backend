@@ -1,12 +1,14 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from cleaning.tasks import analyze_excel_task, process_cleaning_task
+from cleaning.tasks import analyze_excel_task
+# from cleaning.tasks import analyze_excel_task, process_cleaning_task
 from core.security import get_current_user 
 from departments.department_service import DepartmentService
-from models.models.models import Users
+from history.history_service import HistoryService
+from models.models.models import StatusEnum, Users
 from upload.minio_service import MinioService
 from upload.minio_service import MinioService
-from config.dependencies import get_dept_service, get_minio_service, get_minio_service 
+from config.dependencies import get_dept_service, get_history_service, get_minio_service, get_minio_service 
 
 router = APIRouter(
     prefix='/upload',
@@ -38,11 +40,64 @@ async def upload_payroll_excel(
     if result.get("status") == "error":
         raise HTTPException(status_code=500, detail=result["message"])
     
-    analyze_excel_task.delay(new_history.id_history_upload, safe_filename, userNow.id_dept)
+    return result
+
+
+@router.get("/status/{history_id}")
+def get_upload_status(
+        history_id: int,
+        history_service : HistoryService = Depends(get_history_service),
+        userNow: Users = Depends(get_current_user)
+    ):
+    record = history_service.get_history_by_id(history_id)
     
-    # process_cleaning_task.delay(result.get('data')[0], result.get('data')[1], userNow.id_dept)
+    if not record:
+        raise HTTPException(status_code=404, detail="Data history tidak ditemukan.")
+    
+    if record.users_nik != userNow.nik:
+        raise HTTPException(
+            status_code=403, 
+            detail="Akses ditolak. Anda tidak dapat melihat status milik pengguna lain."
+        )
 
-    return 'berhasil'
+    response = {
+        "history_id": record.id_history_upload,
+        "status": record.status,
+    }
 
+    if record.status == StatusEnum.AWAITING_PREVIEW:
+        response["preview_data"] = record.analysis_result
+    
+    elif record.status == StatusEnum.FAILED:
+        response["error_detail"] = record.analysis_result.get("error") if record.analysis_result else "Unknown error"
+
+    return response
+
+@router.post("/confirm/{history_id}")
+def confirm_upload(
+        history_id: int,
+        history_service : HistoryService = Depends(get_history_service),
+        userNow: Users = Depends(get_current_user)
+    ):
+
+    
+    record = history_service.get_history_by_id(history_id)
+    
+
+    if not record:
+        raise HTTPException(status_code=404, detail="Data history tidak ditemukan.")
+    
+    if record.users_nik != userNow.nik:
+        raise HTTPException(
+            status_code=403, 
+            detail="Akses ditolak. Anda tidak diizinkan memproses data milik pengguna lain."
+        )
+
+    history_service.confirm_and_process_upload(history_id)
+
+    return {
+        "status": "success", 
+        "message": "Proses penyimpanan permanen dimulai."
+    }
 
 

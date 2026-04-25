@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from cleaning.tasks import analyze_excel_task
 from models.models.models import Users
 from models.schemas.history_schema import HistoryUpload as HistoryUploadSchema
 from history.history_service import HistoryService
@@ -34,6 +35,8 @@ class MinioService:
         success_upload = self.history_service.add_history(history_schema=history_schema)
 
         result =  success_upload.id_history_upload, file_name
+
+        analyze_excel_task.delay(result[0], result[1], user.id_dept)
 
         return {
             "status": "success",

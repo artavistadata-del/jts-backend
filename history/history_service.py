@@ -1,4 +1,7 @@
-from models.models.models import HistoryUpload as HistoryUploadModels
+from fastapi import HTTPException
+
+from cleaning.tasks import commit_upsert_task
+from models.models.models import HistoryUpload as HistoryUploadModels, StatusEnum
 from models.schemas.history_schema import HistoryUpload as HistoryUploadSchema
 from history.history_repository import HistoryRepository 
 
@@ -36,3 +39,21 @@ class HistoryService :
             "size": size,
             "total_pages": (total + size - 1) // size  # Pembulatan ke atas
         }
+    
+    def get_history_by_id(self, id_hist : int) :
+        return self.history_repo.select_history_by_id_hist(id_hist)
+    
+
+    def confirm_and_process_upload(self, history_id: int):
+        record = self.history_repo.select_history_by_id_hist(history_id)
+        
+        if not record or record.status != StatusEnum.AWAITING_PREVIEW:
+            raise HTTPException(status_code=400, detail="Status data tidak valid untuk konfirmasi.")
+
+        record.status = StatusEnum.PROCESSING_INSERT
+        
+        self.history_repo.update_history(record)
+
+        commit_upsert_task.delay(history_id, record.file_name, record.id_dept)
+
+        return True

@@ -8,6 +8,9 @@ class HistoryRepository :
     def select_history_by_nik(self, nik : str) :
         self.db.query(HistoryUpload).filter(HistoryUpload.users_nik == nik)
 
+    def select_history_by_id_hist(self, id_hist : int) :
+        return self.db.query(HistoryUpload).filter(HistoryUpload.id_history_upload == id_hist).first()
+
     def insert_history(self, history : HistoryUpload) :
         self.db.add(history)
         self.db.commit()
@@ -25,3 +28,8 @@ class HistoryRepository :
                        .limit(limit)\
                        .all()
         return results, total_count
+    
+    def update_history(self, history: HistoryUpload):
+        self.db.commit()
+        self.db.refresh(history)
+        return history

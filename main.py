@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from config.config import engine
 from departments import department_route
-from finance import finance_router
+# from finance import finance_router
 from history import history_router
 from models.models import models 
 from users import user_route
@@ -38,7 +38,7 @@ app.include_router(user_route.router)
 app.include_router(minio_route.router)
 app.include_router(role_route.router)
 app.include_router(department_route.router)
-app.include_router(finance_router.router)
+# app.include_router(finance_router.router)
 app.include_router(history_router.router)
 # app.include_router(route_finance.router)
 
