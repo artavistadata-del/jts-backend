@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 
 from cleaning.tasks import commit_upsert_task
-from models.models.models import HistoryUpload as HistoryUploadModels, StatusEnum
+from models.models.models import HistoryUpload as HistoryUploadModels, StatusEnum, Users
 from models.schemas.history_schema import HistoryUpload as HistoryUploadSchema
 from history.history_repository import HistoryRepository 
 
@@ -12,7 +12,7 @@ class HistoryService :
 
     def add_history(self, history_schema : HistoryUploadSchema):
         history_models = HistoryUploadModels(
-            users_nik = history_schema.users_nik,
+            id_users = history_schema.id_users,
             id_roles = history_schema.id_role,
             id_dept = history_schema.id_dept,
             file_name = history_schema.file_name,
@@ -22,23 +22,35 @@ class HistoryService :
         return self.history_repo.insert_history(history_models)
     
 
-    def get_history_paginated(self, nik: str, page: int = 1, size: int = 10):
-
+    def get_history_paginated(self, userNow: Users, page: int = 1, size: int = 10):
         if page < 1:
             page = 1
         if size < 1:
             size = 10
         skip = (page - 1) * size
         
-        items, total = self.history_repo.select_history_by_nik(nik, skip=skip, limit=size)
+        # Ekstrak data yang dibutuhkan dari userNow
+        id_user = userNow.idusers
+        role_name = userNow.roles.role.value if userNow.roles else "STAFF"
+        id_dept = userNow.id_dept
+
+        # Panggil method repository yang baru
+        items, total = self.history_repo.select_history_by_access(
+            id_users=id_user, 
+            role_name=role_name, 
+            id_dept=id_dept, 
+            skip=skip, 
+            limit=size
+        )
         
         return {
             "items": items,
             "total": total,
             "page": page,
             "size": size,
-            "total_pages": (total + size - 1) // size  # Pembulatan ke atas
+            "total_pages": (total + size - 1) // size 
         }
+    
     
     def get_history_by_id(self, id_hist : int) :
         return self.history_repo.select_history_by_id_hist(id_hist)

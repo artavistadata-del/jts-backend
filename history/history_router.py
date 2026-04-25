@@ -8,18 +8,18 @@ from models.models.models import Users
 # Import database session, models, dan schemas kamu di sini
 
 router = APIRouter(
-        prefix="/history",
+        prefix="/v1/history",
         tags=["History"]
     )
 
 
-@router.get("/all-transaction")
+@router.get("/all")
 def read_history(
-    userNow : Users = Depends(get_current_user), 
-    page: int = Query(1, ge=1), # Default page 1, minimal 1
-    limit: int = Query(10, ge=1, le=100), # Default 10, max 100 per page
-    service : HistoryService = Depends(get_history_service)
+    userNow: Users = Depends(get_current_user), 
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100), 
+    service: HistoryService = Depends(get_history_service)
 ):
 
-    result = service.get_history_paginated(userNow.nik, page, limit)
+    result = service.get_history_paginated(userNow, page, limit)
     return result

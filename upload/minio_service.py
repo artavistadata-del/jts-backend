@@ -26,7 +26,7 @@ class MinioService:
 
         history_schema = HistoryUploadSchema(
             file_name=file_name,
-            users_nik=user.nik,
+            id_users=user.idusers,
             id_dept=user.id_dept,
             time_stamp=datetime.now().date(),
             id_role=user.id_roles

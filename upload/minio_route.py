@@ -11,7 +11,7 @@ from upload.minio_service import MinioService
 from config.dependencies import get_dept_service, get_history_service, get_minio_service, get_minio_service 
 
 router = APIRouter(
-    prefix='/upload',
+    prefix='/v1/upload',
     tags=["Upload"]
 )
 
@@ -54,7 +54,7 @@ def get_upload_status(
     if not record:
         raise HTTPException(status_code=404, detail="Data history tidak ditemukan.")
     
-    if record.users_nik != userNow.nik:
+    if record.id_users != userNow.idusers:
         raise HTTPException(
             status_code=403, 
             detail="Akses ditolak. Anda tidak dapat melihat status milik pengguna lain."
@@ -87,7 +87,7 @@ def confirm_upload(
     if not record:
         raise HTTPException(status_code=404, detail="Data history tidak ditemukan.")
     
-    if record.users_nik != userNow.nik:
+    if record.id_users != userNow.idusers:
         raise HTTPException(
             status_code=403, 
             detail="Akses ditolak. Anda tidak diizinkan memproses data milik pengguna lain."
