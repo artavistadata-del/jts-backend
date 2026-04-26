@@ -15,7 +15,7 @@ router = APIRouter(
     tags=["Upload"]
 )
 
-@router.post("/upload")
+@router.post("/file")
 async def upload_payroll_excel(
     file: UploadFile = File(...),
     userNow: Users = Depends(get_current_user),

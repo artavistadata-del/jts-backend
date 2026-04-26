@@ -3,7 +3,7 @@ from cleaning.tasks import analyze_excel_task
 from models.models.models import Users
 from models.schemas.history_schema import HistoryUpload as HistoryUploadSchema
 from history.history_service import HistoryService
-from upload.minio_repository import MinioRepository # Sesuaikan path-nya
+from upload.minio_repository import MinioRepository
 import typing
 
 class MinioService:
