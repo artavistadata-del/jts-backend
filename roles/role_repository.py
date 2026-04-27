@@ -6,11 +6,11 @@ class RoleRepository:
     def __init__(self, db : Session):
         self.db = db
 
-    def select_role_by_id(self, id : int) :
+    def get_role_by_id(self, id : int) :
         return self.db.query(Roles).filter(Roles.id_roles == id).first()
     
-    def select_role_by_role(self, role : str) :
+    def get_role_by_role(self, role : str) :
         return self.db.query(Roles.id_roles).filter(Roles.role == role).first()
     
-    def select_all_role(self) :
+    def get_all_role(self) :
         return self.db.query(Roles).all()

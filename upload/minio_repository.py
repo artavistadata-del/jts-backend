@@ -4,15 +4,16 @@ import typing
 class MinioRepository:
     def __init__(self, client: Minio):
         self.client = client
-        self.bucket_name = "raw-dept-1"
 
-    def upload_file(self, file_name: str, file_stream: typing.BinaryIO, file_size: int, content_type: str):
+
+    def upload_file(self, file_name: str, file_stream: typing.BinaryIO, file_size: int, content_type: str, dept_id : int):
         """Hanya bertugas mengirim file fisik ke MinIO"""
+        bucket_name = f"raw-dept-{dept_id}"
         try:
             file_stream.seek(0) 
             
             result = self.client.put_object(
-                bucket_name=self.bucket_name,
+                bucket_name=bucket_name,
                 object_name=file_name,
                 data=file_stream,
                 length=file_size,

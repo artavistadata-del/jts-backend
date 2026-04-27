@@ -26,6 +26,7 @@ DEPT_CONFIG = {
             ],
         "constraint_name": "uix_finance_data",
         "dept_name": "Finance",
+        "mv_refresh_query" : "REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;"
     },
     # CONTOH JIKA BESOK ADA DEPARTEMEN HR (ID 2):
     # 2: {

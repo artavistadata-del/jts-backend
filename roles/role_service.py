@@ -7,13 +7,13 @@ class RoleService :
         self.repo = repo
 
     def display_role_by_role(self, role : str) :
-        return self.repo.select_role_by_role(role)
+        return self.repo.get_role_by_role(role)
     
     def display_role_by_id(self, role : int) :
-        return self.repo.select_role_by_id(role)
+        return self.repo.get_role_by_id(role)
 
     def display_all_role(self):
-        roles_find = self.repo.select_all_role()
+        roles_find = self.repo.get_all_role()
         
         if not roles_find:
             raise HTTPException(404, "Belum Ada Role")

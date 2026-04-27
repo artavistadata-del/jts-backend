@@ -11,6 +11,8 @@ from departments.department_repository import DepartmentRepository
 from history.history_repository import HistoryRepository
 from roles.role_repository import RoleRepository
 from roles.role_service import RoleService
+from transaction.transaction_repository import TransactionRepository
+from transaction.transaction_service import TransactionService
 from upload.minio_repository import MinioRepository
 from users.user_repository import UserRepository
 from history.history_service import HistoryService
@@ -29,6 +31,9 @@ def get_dept_repo(db: Session = Depends(get_db)) -> DepartmentRepository:
 
 def get_hist_repo(db: Session = Depends(get_db)) -> HistoryRepository:
     return HistoryRepository(db)
+
+def get_transaction_repo(db: Session = Depends(get_db)) -> TransactionRepository:
+    return TransactionRepository(db)
 
 
 # def get_finance_repo(db: Session = Depends(get_db)) -> FinanceRepository:
@@ -60,3 +65,5 @@ def get_minio_service(minio_repo : MinioRepository = Depends(get_minio_repo), hi
 # def get_finance_service(finance_repo : FinanceRepository = Depends(get_finance_repo)) -> FinanceService:
 #     return FinanceService(finance_repo)
 
+def get_transaction_service(transaction_repo : TransactionRepository = Depends(get_transaction_repo)) -> TransactionService :
+    return TransactionService(transaction_repo)

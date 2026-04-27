@@ -18,8 +18,16 @@ class UserService :
         self.role_service = role_service
         self.dept_service = dept_service
 
+
+    '''
+        ==============================================================================
+        User Sign In di disini 
+        UsersSchemaSignIn : Iput dari Users (DTO)
+
+        ==============================================================================
+    '''
     def signIn(self, userSchema : UserSchemaSignIn) :
-        userFind = self.user_repo.select_user_by_nik(nik=userSchema.nik)
+        userFind = self.user_repo.get_user_by_nik(nik=userSchema.nik)
 
         if not userFind :
             raise HTTPException(404, "user tidak ditemukan")
@@ -37,7 +45,7 @@ class UserService :
         return {"access_token": access_token, "token_type": "bearer"}
     
     def signUp(self, userSchema : UserSchemaSignUp) :
-        userFind = self.user_repo.select_user_by_nik(nik=userSchema.nik)
+        userFind = self.user_repo.get_user_by_nik(nik=userSchema.nik)
         if userFind :
             raise HTTPException(302, "NIK sudah terdaftar")
 
@@ -70,7 +78,7 @@ class UserService :
             
         skip = (page - 1) * limit
         
-        total_items, users = self.user_repo.select_all_user_paginated(skip=skip, limit=limit)
+        total_items, users = self.user_repo.get_all_user_paginated(skip=skip, limit=limit)
         
         user_list = []
         for user in users:
@@ -103,7 +111,7 @@ class UserService :
     
 
     def nonactive_user(self, id_user : int):
-        userFind = self.user_repo.select_user_by_id(id_user)
+        userFind = self.user_repo.get_user_by_id(id_user)
         if not userFind:
             raise HTTPException(status_code=404, detail="User tidak ditemukan")
         
@@ -121,7 +129,7 @@ class UserService :
     def update_user(self, nik: str, password: Optional[str] = None, 
                     id_role: Optional[int] = None, id_dept: Optional[int] = None, nama : Optional[str] = None):
         print(nik)
-        user = self.user_repo.select_user_by_nik(nik)
+        user = self.user_repo.get_user_by_nik(nik)
         if not user:
             raise HTTPException(404, "User tidak ditemukan")
 
@@ -147,7 +155,7 @@ class UserService :
     
 
     def reactivate_user(self, id_user : int):
-        userFind = self.user_repo.select_user_by_id(id_user)
+        userFind = self.user_repo.get_user_by_id(id_user)
         if not userFind:
             raise HTTPException(status_code=404, detail="User tidak ditemukan")
         
@@ -163,4 +171,4 @@ class UserService :
 
 
     def get_user_by_id(self, id : int) :
-        return self.user_repo.select_user_by_id(id)
+        return self.user_repo.get_user_by_id(id)

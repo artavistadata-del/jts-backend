@@ -19,7 +19,8 @@ class MinioService:
                 file_name=file_name,
                 file_stream=file_stream,
                 file_size=file_size,
-                content_type=content_type
+                content_type=content_type,
+                dept_id=user.id_dept
             )
         except Exception as e:
             return {"status": "error", "message": str(e)}

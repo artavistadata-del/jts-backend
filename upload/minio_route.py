@@ -1,7 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from cleaning.tasks import analyze_excel_task
-# from cleaning.tasks import analyze_excel_task, process_cleaning_task
 from core.security import get_current_user 
 from departments.department_service import DepartmentService
 from history.history_service import HistoryService
@@ -35,7 +34,6 @@ async def upload_payroll_excel(
         file_size=file.size,
         content_type=file.content_type
     )
-    
     
     if result.get("status") == "error":
         raise HTTPException(status_code=500, detail=result["message"])

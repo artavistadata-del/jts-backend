@@ -10,13 +10,13 @@ class DepartmentService :
         self.repo = dept_repo
 
     def display_dept_by_dept(self, name : str) :
-        return self.repo.select_dept_by_dept(name)
+        return self.repo.get_dept_by_dept(name)
     
     def display_dept_by_id(self, id_dept : id) :
-        return self.repo.select_dept_by_id(id_dept)
+        return self.repo.get_dept_by_id(id_dept)
     
     def display_all_dept(self) :
-        dept_find = self.repo.select_all_dept()
+        dept_find = self.repo.get_all_dept()
         
         if not dept_find:
             raise HTTPException(404, "Belum Ada Department")

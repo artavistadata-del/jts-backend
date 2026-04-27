@@ -129,17 +129,17 @@ class FinanceService(BaseCleaningService):
             self.db.execute(upsert_stmt)
             
             # record.status = StatusEnum.PENDING 
-            record.status = StatusEnum.APPROVED
+            record.status = StatusEnum.PENDING
             self.db.commit()
 
-            try:
-                # Gunakan text() untuk query mentah
-                self.db.execute(text("REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;"))
-                self.db.commit() 
-                print("Materialized View refreshed successfully.")
-            except Exception as mv_e:
-                self.db.rollback() 
-                print(f"Warning: Materialized View refresh failed: {mv_e}")
+            # try:
+            #     # Gunakan text() untuk query mentah
+            #     self.db.execute(text("REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;"))
+            #     self.db.commit() 
+            #     print("Materialized View refreshed successfully.")
+            # except Exception as mv_e:
+            #     self.db.rollback() 
+            #     print(f"Warning: Materialized View refresh failed: {mv_e}")
 
         except Exception as e:
             self.db.rollback()
