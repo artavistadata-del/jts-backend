@@ -137,6 +137,7 @@ class StatusEnum(str, enum.Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 class Departments(Base):
     __tablename__ = 'departments'

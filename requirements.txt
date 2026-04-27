@@ -10,6 +10,7 @@ polars
 fastexcel
 pyarrow==23.0.1
 xlsx2csv
+adbc-driver-postgresql
 
 # Task Queue & Broker
 celery==5.3.6
