@@ -4,6 +4,7 @@ from departments import department_route
 # from finance import finance_router
 from history import history_router
 from models.models import models 
+from powerbi import powerbi
 from transaction import transaction_router
 from users import user_route
 from roles import role_route
@@ -42,6 +43,7 @@ app.include_router(department_route.router)
 # app.include_router(finance_router.router)
 app.include_router(history_router.router)
 app.include_router(transaction_router.router)
+app.include_router(powerbi.router)
 # app.include_router(route_finance.router)
 
 @app.get("/")

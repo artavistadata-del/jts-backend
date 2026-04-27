@@ -26,8 +26,17 @@ DEPT_CONFIG = {
             ],
         "constraint_name": "uix_finance_data",
         "dept_name": "Finance",
-        "mv_refresh_query" : "REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;"
+        "mv_refresh_query" : "REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;",
+        # --- KONFIGURASI POWER BI DITAMBAHKAN DI SINI ---
+        "powerbi": {
+            "report_id": "c2058350-96e5-4ce2-8f7d-cd79418d763d",
+            "dataset_id": "ba662dd9-ae54-4dd3-a00c-ec52cd2bfe03",
+        }
     },
+
+
+
+
     # CONTOH JIKA BESOK ADA DEPARTEMEN HR (ID 2):
     # 2: {
     #     "name": "Human Resources",
@@ -43,3 +52,10 @@ def get_dept_config(id_dept: int) -> dict:
     if id_dept not in DEPT_CONFIG:
         raise ValueError(f"Sistem belum mendukung integrasi untuk ID Departemen: {id_dept}")
     return DEPT_CONFIG[id_dept]
+
+def get_powerbi_config(id_dept: int) -> dict:
+    """Fungsi pembantu khusus untuk mengambil konfigurasi Power BI."""
+    config = get_dept_config(id_dept)
+    if "powerbi" not in config:
+        raise ValueError(f"Departemen {config['name']} belum memiliki konfigurasi Power BI.")
+    return config["powerbi"]
