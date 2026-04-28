@@ -10,9 +10,9 @@ from cleaners.finance_cleanser import process_finance_excel
 
 DEPT_CONFIG = {
     1: { # 1 = ID Departemen Finance
-        "name": "Finance",
+        "name": "finance",
         "model": FactFinance,
-        "table_name": "oltp_tes.fact_finance", 
+        "table_name": "oltp_main.fact_finance", 
         "cleanser": process_finance_excel,
         "unique_keys": [
                 "bulan", 
@@ -42,7 +42,7 @@ DEPT_CONFIG = {
     # 2: {
     #     "name": "Human Resources",
     #     "model": FactHR,
-    #     "table_name": "oltp_tes.fact_hr",
+    #     "table_name": "oltp_main.fact_hr",
     #     "cleanser": process_hr_excel,
     #     "unique_keys": ["bulan", "nik_karyawan", "komponen_gaji"],
     #     "constraint_name": "uix_hr_data"

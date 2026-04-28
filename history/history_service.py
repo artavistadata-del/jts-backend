@@ -17,7 +17,8 @@ class HistoryService :
             id_roles = history_schema.id_role,
             id_dept = history_schema.id_dept,
             file_name = history_schema.file_name,
-            time_stamp = history_schema.time_stamp
+            time_stamp = history_schema.time_stamp,
+            file_name_storage = history_schema.file_name_storage
     
         )
         return self.history_repo.insert_history(history_models)

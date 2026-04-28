@@ -1,32 +1,38 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Power BI Mobile Embed (ddPublic)</title>
-    <style>
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100vh;
-        background-color: #f4f4f4;
-        overflow: hidden; /* Mencegah scroll ganda */
-      }
+DROP MATERIALIZED VIEW IF EXISTS olap_finance.mv_finance_detail CASCADE;
 
-      .powerbi-frame {
-        width: 100%;
-        height: 100%;
-        border: none;
-      }
-    </style>
-  </head>
-  <body>
-    <iframe
-      class="powerbi-frame"
-      src="https://app.powerbi.com/view?r=eyJrIjoiZDk3ZWVkYTctYjkwYi00NWExLWI1NGEtNzcwZjc3ZGRiYjg1IiwidCI6IjQ3MzFkYjMyLTJkYjYtNGJhMS04ZjM0LTNkOGZiNTZlOGFlNCIsImMiOjEwfQ%3D%3D"
-      allowfullscreen="true">
-    </iframe>
-  </body>
-</html>
+-- 2. Buat ulang dengan menambahkan f.id_fact
+CREATE MATERIALIZED VIEW olap_finance.mv_finance_detail AS
+SELECT 
+    -- WAJIB ADA: id_fact untuk Unique Index (Syarat mutlak CONCURRENTLY)
+    f.id_fact, 
+
+    h.file_name,
+    h.time_stamp as upload_date,
+    u.nik,
+    d.name_dept,
+    r.role,
+    
+    f.report_type,
+    f.idx_category,
+    f.category,
+    f.idx_sub_category,
+    f.sub_category,
+    f.sub_sub_category,
+    f.account_name,
+    f.bulan,
+    f.value
+
+FROM oltp_main.fact_finance f
+JOIN oltp_main.history_upload h ON f.id_history = h.id_history_upload
+JOIN oltp_main.users u ON h.id_users = u.idusers
+JOIN oltp_main.departments d ON h.id_dept = d.id_dept
+JOIN oltp_main.roles r ON h.id_roles = r.id_roles
+WHERE h.status = 'APPROVED';
+
+-- 3. BUAT UNIQUE INDEX YANG BENAR (Hanya pakai id_fact) -> ini berguna untuk setiap refresh
+CREATE UNIQUE INDEX idx_mv_detail_unique ON olap_finance.mv_finance_detail(id_fact);
+
+-- 4. Index tambahan agar filter Power BI instan
+CREATE INDEX idx_mv_detail_bulan ON olap_finance.mv_finance_detail(bulan);
+CREATE INDEX idx_mv_detail_dept ON olap_finance.mv_finance_detail(name_dept);
+CREATE INDEX idx_mv_detail_category ON olap_finance.mv_finance_detail(category);

@@ -1,6 +1,8 @@
 from minio import Minio, S3Error
 import typing
 
+from config.dept_registry import get_dept_config
+
 class MinioRepository:
     def __init__(self, client: Minio):
         self.client = client
@@ -8,7 +10,9 @@ class MinioRepository:
 
     def upload_file(self, file_name: str, file_stream: typing.BinaryIO, file_size: int, content_type: str, dept_id : int):
         """Hanya bertugas mengirim file fisik ke MinIO"""
-        bucket_name = f"raw-dept-{dept_id}"
+        # bucket_name = f"raw-dept-{dept_id}"
+        bucket_name = get_dept_config(dept_id)
+        bucket_name = bucket_name['name']
         try:
             file_stream.seek(0) 
             

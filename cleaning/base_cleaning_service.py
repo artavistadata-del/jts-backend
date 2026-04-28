@@ -14,7 +14,9 @@ class BaseCleaningService:
 
     def _download_and_clean(self, history_id: int, filename: str, id_dept: int, cleanser_func) -> pl.DataFrame:
         """Fungsi generik untuk unduh dan bersihkan Excel."""
-        raw_bucket = f"raw-dept-{id_dept}" 
+        # raw_bucket = f"raw-dept-{id_dept}"
+        raw_bucket = get_dept_config(id_dept)
+        raw_bucket = raw_bucket['name']
         
         response = self.minio.get_object(raw_bucket, filename)
         raw_bytes = io.BytesIO(response.read())

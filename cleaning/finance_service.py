@@ -53,7 +53,7 @@ class FinanceService(BaseCleaningService):
             # ==========================================
             query_insert = text(f"""
                 SELECT s.* FROM {stg_table} s
-                LEFT JOIN oltp_tes.fact_finance f ON {join_conditions}
+                LEFT JOIN oltp_main.fact_finance f ON {join_conditions}
                 WHERE f.bulan IS NULL
             """)
             
@@ -67,7 +67,7 @@ class FinanceService(BaseCleaningService):
             # ==========================================
             query_replace = text(f"""
                 SELECT s.* FROM {stg_table} s
-                JOIN oltp_tes.fact_finance f ON {join_conditions}
+                JOIN oltp_main.fact_finance f ON {join_conditions}
                 WHERE s.value != f.value
             """)
             
@@ -99,7 +99,7 @@ class FinanceService(BaseCleaningService):
                     -- Prioritas 2: Ambil WIP Ending dari Database Utama 
                     -- (Hanya jika bulannya tidak ada di file Excel)
                     SELECT bulan, value 
-                    FROM oltp_tes.fact_finance f
+                    FROM oltp_main.fact_finance f
                     WHERE account_name = '2 WIP ENDING BALANCE'
                       AND NOT EXISTS (
                           SELECT 1 FROM {stg_table} s 
@@ -163,7 +163,7 @@ class FinanceService(BaseCleaningService):
         
         # Nama staging table yang sudah dibuat saat analyze
         stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
-        target_table = "oltp_tes.fact_finance"
+        target_table = "oltp_main.fact_finance"
         
         try:
             # Ambil kolom dari registry atau dari tabel staging langsung

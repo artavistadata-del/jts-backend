@@ -10,6 +10,7 @@ class HistoryUpload(BaseModel) :
     file_name: str
     time_stamp: date
     id_role : int
+    file_name_storage : str
 
 
 class ActionHistoryPayload(BaseModel):
