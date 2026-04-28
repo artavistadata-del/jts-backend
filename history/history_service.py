@@ -66,7 +66,7 @@ class HistoryService :
         record.status = StatusEnum.PROCESSING_INSERT
         
         self.history_repo.update_history(record)
-
+        
         commit_upsert_task.delay(history_id, record.file_name, record.id_dept)
 
         return True
@@ -99,7 +99,7 @@ class HistoryService :
             
             # Update status history & catatan
             record.status = StatusEnum.REJECTED
-            # record.notes = notes
+            record.notes = notes
             self.history_repo.update_history(record)
             
             return "File ditolak. Data transaksi berhasil dihapus dari sistem."
@@ -107,7 +107,7 @@ class HistoryService :
         elif action == StatusEnum.APPROVED:
             # Update status history & catatan
             record.status = StatusEnum.APPROVED
-            # record.notes = notes
+            record.notes = notes
             self.history_repo.update_history(record)
 
             # Eksekusi Refresh Materialized View Power BI

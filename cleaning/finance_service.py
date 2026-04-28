@@ -16,82 +16,7 @@ class FinanceService(BaseCleaningService):
             "idx_category", "category", "idx_sub_category", 
             "sub_category", "sub_sub_category"
         ]
-
-
-    # ======================================================================
-    # PYTHON COMPARE
-    # ======================================================================
-    # def execute_analyze(self, history_id: int, filename: str):
-    #     df_excel = self._download_and_clean(history_id, filename, self.id_dept, process_finance_excel)
-        
-    #     query = """
-    #         SELECT bulan, account_name, report_type, idx_category, category, 
-    #                idx_sub_category, sub_category, sub_sub_category, value 
-    #         FROM oltp_tes.fact_finance
-    #     """
-
-    #     df_db = pl.read_database(query=query, connection=engine)
-
-    #     df_db = df_db.with_columns([
-    #         pl.col("bulan").cast(pl.Date), pl.col("value").cast(pl.Float64),
-    #         pl.col("account_name").cast(pl.String), pl.col("report_type").cast(pl.String),
-    #         pl.col("idx_category").cast(pl.String), pl.col("category").cast(pl.String),
-    #         pl.col("idx_sub_category").cast(pl.String), pl.col("sub_category").cast(pl.String),
-    #         pl.col("sub_sub_category").cast(pl.String)
-    #     ])
-
-    #     string_keys = self.unique_keys[1:] 
-    #     df_excel = df_excel.with_columns([pl.col(c).fill_null("") for c in string_keys])
-    #     df_db = df_db.with_columns([pl.col(c).fill_null("") for c in string_keys])
-
-    #     df_compare = df_excel.join(df_db, on=self.unique_keys, how="left", suffix="_db")
-        
-    #     df_insert = df_compare.filter(pl.col("value_db").is_null())
-    #     total_insert = df_insert.height
-
-    #     df_replace = df_compare.filter(
-    #         (pl.col("value_db").is_not_null()) & 
-    #         (pl.col("value") != pl.col("value_db"))
-    #     )
-    #     total_replace = df_replace.height
-
-    #     total_unchanged = df_compare.filter(
-    #         (pl.col("value_db").is_not_null()) & 
-    #         (pl.col("value") == pl.col("value_db"))
-    #     ).height
-
-    #     # ==========================================
-    #     # SIAPKAN PREVIEW DATA (Max 10 Baris)
-    #     # ==========================================
-    #     original_cols = df_excel.columns
-        
-    #     preview_insert = (
-    #         df_insert.select(original_cols)
-    #         .head(10)
-    #         .cast(pl.String)
-    #         .to_dicts()
-    #     )
-        
-    #     preview_replace = (
-    #         df_replace.select(original_cols)
-    #         .head(10)
-    #         .cast(pl.String)
-    #         .to_dicts()
-    #     )
-
-    #     # 4. Simpan Hasil ke History Upload
-    #     record = self.db.query(HistoryUpload).filter(HistoryUpload.id_history_upload == history_id).first()
-    #     record.analysis_result = {
-    #         "dept_name": "FINANCE",
-    #         "total_insert": total_insert,
-    #         "total_replace": total_replace,
-    #         "total_unchanged": total_unchanged,
-    #         "total_row_excel": df_excel.height,
-    #         "preview_insert": preview_insert,
-    #         "preview_replace": preview_replace 
-    #     }
-    #     record.status = StatusEnum.AWAITING_PREVIEW
-    #     self.db.commit()
+        self.stg_schema = "stg_table"
 
     # ===========================================================================================
     # POSTGRES COMPARE
@@ -107,7 +32,7 @@ class FinanceService(BaseCleaningService):
 
         # 2. PUSH KE STAGING TABLE (Sangat Cepat & Aman untuk RAM)
         # Bikin nama tabel unik berdasarkan history_id agar tidak bentrok jika upload barengan
-        stg_table = f"stg_finance_upload_{history_id}"
+        stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
         
         # Gunakan string URI untuk Polars write_database
         db_uri = f"postgresql://{engine.url.username}:{engine.url.password}@{engine.url.host}:{engine.url.port}/{engine.url.database}"
@@ -153,11 +78,59 @@ class FinanceService(BaseCleaningService):
             # Hitung total unchanged
             total_unchanged = total_row_excel - (total_insert + total_replace)
 
-        # finally:
-        #     # 4. WAJIB: HAPUS STAGING TABLE SETELAH SELESAI
-        #     # Pakai blok finally agar tabel tetap terhapus meskipun ada error
-        #     self.db.execute(text(f"DROP TABLE IF EXISTS {stg_table}"))
-        #     self.db.commit()
+
+            # ==========================================
+            # C. DETEKSI HUMAN ERROR (WIP MISMATCH)
+            # ==========================================
+            query_wip_mismatch = text(f"""
+                WITH StagingBeginning AS (
+                    SELECT bulan, value 
+                    FROM {stg_table} 
+                    WHERE account_name = '1 WIP BEGINNING BALANCE'
+                ),
+                EndingCombined AS (
+                    -- Prioritas 1: Ambil WIP Ending dari file Excel yang SEDANG di-upload
+                    SELECT bulan, value 
+                    FROM {stg_table} 
+                    WHERE account_name = '2 WIP ENDING BALANCE'
+                    
+                    UNION ALL
+                    
+                    -- Prioritas 2: Ambil WIP Ending dari Database Utama 
+                    -- (Hanya jika bulannya tidak ada di file Excel)
+                    SELECT bulan, value 
+                    FROM oltp_tes.fact_finance f
+                    WHERE account_name = '2 WIP ENDING BALANCE'
+                      AND NOT EXISTS (
+                          SELECT 1 FROM {stg_table} s 
+                          WHERE s.account_name = '2 WIP ENDING BALANCE' 
+                          AND s.bulan = f.bulan
+                      )
+                )
+                SELECT 
+                    sb.bulan AS bulan_upload,
+                    sb.value AS nilai_beginning_baru,
+                    ec.value AS nilai_ending_lama
+                FROM StagingBeginning sb
+                LEFT JOIN EndingCombined ec 
+                    -- Cocokkan bulan Beginning dengan bulan Ending (1 bulan mundur)
+                    ON ec.bulan = (sb.bulan - INTERVAL '1 month')::DATE
+                -- Filter hanya yang nilainya beda ATAU tidak ketemu sama sekali
+                WHERE ABS(sb.value) != ABS(ec.value) OR ec.value IS NULL
+            """)
+            
+            wip_mismatch_results = self.db.execute(query_wip_mismatch).fetchall()
+            
+            # Kumpulkan daftar peringatan untuk dikirim ke UI
+            warnings = []
+            for row in wip_mismatch_results:
+                val_beg = f"{row.nilai_beginning_baru:,.2f}" if row.nilai_beginning_baru else "0"
+                
+                if row.nilai_ending_lama is None:
+                    warnings.append(f"⚠️ {row.bulan_upload}: Data WIP Ending bulan lalu tidak ditemukan.")
+                else:
+                    val_end = f"{row.nilai_ending_lama:,.2f}"
+                    warnings.append(f"⚠️ {row.bulan_upload}: WIP Beg ({val_beg}) ≠ WIP End bln lalu ({val_end}).")
 
         except Exception as e:
             self.db.rollback()
@@ -175,72 +148,11 @@ class FinanceService(BaseCleaningService):
             "total_unchanged": total_unchanged,
             "total_row_excel": total_row_excel,
             "preview_insert": preview_insert,
-            "preview_replace": preview_replace 
+            "preview_replace": preview_replace,
+            "warnings": warnings
         }
         record.status = StatusEnum.AWAITING_PREVIEW
         self.db.commit()
-
-    # # ======================================================================================
-    # # PYTHON COMMIT
-    # # =====================================================================================
-    # def execute_commit(self, history_id: int, filename: str):
-    #     record = self.db.query(HistoryUpload).get(history_id)
-    #     config = get_dept_config(self.id_dept)
-        
-    #     try:
-    #         df_excel = self._download_and_clean(history_id, filename, self.id_dept, config["cleanser"])
-            
-    #         text_cols = [
-    #             "idx_category", "category", "idx_sub_category", 
-    #             "sub_category", "sub_sub_category", "account_name", "report_type"
-    #         ]
-            
-    #         df_excel = df_excel.with_columns([
-    #             pl.col(c).fill_null("") for c in text_cols if c in df_excel.columns
-    #         ])
-
-    #         keys = config["unique_keys"]
-    #         df_excel = df_excel.unique(subset=keys, keep="last")
-
-    #         # 2. Sekarang baru konversi ke dicts
-    #         data_dicts = df_excel.to_dicts()
-
-    #         # 3. Siapkan Model SQLAlchemy (sisanya tetap sama)
-    #         TargetModel = config["model"]
-    #         stmt = insert(TargetModel).values(data_dicts)
-
-    #         pk_name = TargetModel.__mapper__.primary_key[0].name
-    #         update_dict = {
-    #             c.name: c for c in stmt.excluded if c.name != pk_name
-    #         }
-            
-    #         upsert_stmt = stmt.on_conflict_do_update(
-    #             constraint=config["constraint_name"], 
-    #             set_=update_dict
-    #         )
-
-    #         # 4. Tembak ke Database
-    #         self.db.execute(upsert_stmt)
-            
-    #         # record.status = StatusEnum.PENDING 
-    #         record.status = StatusEnum.PENDING
-    #         self.db.commit()
-
-    #         # try:
-    #         #     # Gunakan text() untuk query mentah
-    #         #     self.db.execute(text("REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;"))
-    #         #     self.db.commit() 
-    #         #     print("Materialized View refreshed successfully.")
-    #         # except Exception as mv_e:
-    #         #     self.db.rollback() 
-    #         #     print(f"Warning: Materialized View refresh failed: {mv_e}")
-
-    #     except Exception as e:
-    #         self.db.rollback()
-    #         record.status = StatusEnum.FAILED
-    #         self.db.commit()
-    #         raise e
-
 
     # # ======================================================================================
     # # POSTGRES COMMIT
@@ -250,7 +162,7 @@ class FinanceService(BaseCleaningService):
         config = get_dept_config(self.id_dept)
         
         # Nama staging table yang sudah dibuat saat analyze
-        stg_table = f"stg_finance_upload_{history_id}"
+        stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
         target_table = "oltp_tes.fact_finance"
         
         try:
@@ -294,7 +206,7 @@ class FinanceService(BaseCleaningService):
 
     def execute_cancel(self, history_id: int):
         # Nama staging table yang sama
-        stg_table = f"stg_finance_upload_{history_id}"
+        stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
         
         try:
             # Hapus tabel staging jika ada

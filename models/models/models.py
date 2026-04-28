@@ -117,7 +117,7 @@ from typing import Optional
 import datetime
 import enum
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String, Boolean, UniqueConstraint
+from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
@@ -204,6 +204,8 @@ class HistoryUpload(Base):
     finance_data: Mapped[list['FactFinance']] = relationship('FactFinance', back_populates='history', cascade="all, delete-orphan")
 
     analysis_result = Column(JSONB, nullable=True)
+
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 class FactFinance(Base):
     __tablename__ = 'fact_finance'

@@ -24,8 +24,14 @@ def commit_upsert_task(self, history_id: int, filename: str, id_dept: int):
     try:
         service = get_cleaning_service(id_dept, db)
         service.execute_commit(history_id, filename)
-        
-        return f"Upsert complete for ID {history_id}"
+        # if action == 'CONFIRM' :
+        #     service.execute_commit(history_id, filename)
+        #     return f"Upsert complete for ID {history_id}"
+        # elif action == 'CANCEL' :
+        #     service.execute_cancel(history_id, filename)
+        #     return f"Canceled complete for ID {history_id}"
+        # else :
+        #     return f"Action tidak ada !"
     except Exception as e:
         logger.error(f"Gagal Upsert ID {history_id}: {str(e)}")
         raise self.retry(exc=e, countdown=60)
