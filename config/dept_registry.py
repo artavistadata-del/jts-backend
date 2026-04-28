@@ -30,7 +30,8 @@ DEPT_CONFIG = {
         "powerbi": {
             # "report_id": "c2058350-96e5-4ce2-8f7d-cd79418d763d",
             "report_id": "0ad73404-1eda-4f22-b16e-e494b47205ec",
-            "dataset_id": "ba662dd9-ae54-4dd3-a00c-ec52cd2bfe03",
+            # "dataset_id": "ba662dd9-ae54-4dd3-a00c-ec52cd2bfe03",
+            "dataset_id": "f2716cdf-218f-4789-bffc-453fe4b3d8db",
         }
     },
 

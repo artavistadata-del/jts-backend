@@ -45,6 +45,6 @@ app.include_router(transaction_router.router)
 app.include_router(powerbi.router)
 # app.include_router(route_finance.router)
 
-@app.get("/")
+@app.get("/v1")
 def health_check():
     return {"status": "Server berjalan normal!"}
