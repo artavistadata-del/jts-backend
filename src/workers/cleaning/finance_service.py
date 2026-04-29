@@ -2,10 +2,10 @@ import polars as pl
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import text
 from src.workers.cleaning.base_cleaning_service import BaseCleaningService
-from src.workers.cleanser.finance_cleanser import process_finance_excel
-from src.config.config import engine 
-from src.config.dept_registry import get_dept_config
-from src.models.models.models import HistoryUpload, StatusEnum, FactFinance
+from src.workers.cleanser.finance import process_finance_excel
+from src.core.database import engine 
+from src.modules.departments.registry import get_dept_config
+from src.models.models import HistoryUpload, StatusEnum, FactFinance
 
 class FinanceService(BaseCleaningService):
     def __init__(self, db_session):

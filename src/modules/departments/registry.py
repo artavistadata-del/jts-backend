@@ -1,11 +1,8 @@
-# config/dept_registry.py
-
-# Import semua model yang tersedia
-from src.models.models.models import FactFinance 
+from src.models.models import FactFinance 
 # from models.models.models import FactHR  <-- Contoh untuk nanti
 
 # Import semua fungsi pembersih khusus
-from src.workers.cleanser.finance_cleanser import process_finance_excel
+from src.workers.cleanser.finance import process_finance_excel
 # from cleaners.hr_cleanser import process_hr_excel <-- Contoh untuk nanti
 
 DEPT_CONFIG = {
@@ -28,9 +25,7 @@ DEPT_CONFIG = {
         "dept_name": "Finance",
         "mv_refresh_query" : "REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;",
         "powerbi": {
-            # "report_id": "c2058350-96e5-4ce2-8f7d-cd79418d763d",
             "report_id": "0ad73404-1eda-4f22-b16e-e494b47205ec",
-            # "dataset_id": "ba662dd9-ae54-4dd3-a00c-ec52cd2bfe03",
             "dataset_id": "f2716cdf-218f-4789-bffc-453fe4b3d8db",
         }
     },

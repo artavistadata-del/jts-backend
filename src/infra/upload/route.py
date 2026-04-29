@@ -1,16 +1,12 @@
-import os
-import uuid
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from src.workers.cleaning.tasks import analyze_excel_task
 from src.core.security import get_current_user 
-from src.modules.departments.service import DepartmentService
 from src.modules.history.service import HistoryService
-from src.models.models.models import StatusEnum, Users
+from src.models.models import StatusEnum, Users
 from src.infra.upload.service import UploadService
 from src.infra.upload.service import UploadService
-from src.config.dependencies import get_dept_service, get_history_service, get_minio_service, get_minio_service 
+from src.core.dependencies import get_history_service, get_minio_service, get_minio_service 
 
 router = APIRouter(
     prefix='/v1/upload',

@@ -1,12 +1,9 @@
 from fastapi import Depends
 from minio import Minio
 from sqlalchemy.orm import Session
-from src.config.config import get_db, get_minio_client
-# from core.security import get_current_user
+from src.core.database import get_db, get_minio_client
 from src.modules.departments.service import DepartmentService
-# from finance.finance_repository import FinanceRepository
-# from finance.finance_service import FinanceService
-from src.models.models.models import Users
+from src.models.models import Users
 from src.modules.departments.repository import DepartmentRepository
 from src.modules.history.repository import HistoryRepository
 from src.modules.roles.repository import RoleRepository

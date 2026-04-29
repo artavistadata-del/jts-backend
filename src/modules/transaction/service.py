@@ -1,6 +1,6 @@
-from src.models.models.models import RoleEnum
+from src.models.models import RoleEnum
 from src.modules.transaction.repository import TransactionRepository
-from src.config.dept_registry import get_dept_config
+from src.modules.departments.registry import get_dept_config
 
 class TransactionService:
     def __init__(self, repo: TransactionRepository):

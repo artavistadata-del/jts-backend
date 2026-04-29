@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from src.config.dependencies import get_history_service
+from src.core.dependencies import get_history_service
 from src.core.security import get_current_user
 from src.modules.transaction.schema import TransactionPaginatedResponse
 from src.modules.history.service import HistoryService
-from src.models.models.models import RoleEnum, Users
+from src.models.models import RoleEnum, Users
 from src.modules.history.schema import ActionHistoryPayload
 
 router = APIRouter(

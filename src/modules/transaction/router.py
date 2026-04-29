@@ -3,11 +3,11 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from src.core.security import get_current_user
-from src.config.dependencies import get_db, get_transaction_service # Asumsi kamu punya dependency ini
+from src.core.dependencies import get_db, get_transaction_service # Asumsi kamu punya dependency ini
 from src.modules.transaction.schema import EditTransactionRequest
 from src.modules.transaction.repository import TransactionRepository
 from src.modules.transaction.service import TransactionService
-from src.models.models.models import Users, RoleEnum
+from src.models.models import Users, RoleEnum
 
 router = APIRouter(
         prefix="/v1/transaction",

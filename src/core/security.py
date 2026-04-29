@@ -6,8 +6,8 @@ import jwt
 import os
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-from src.config.config import get_db
-from src.models.models.models import Users
+from src.core.database import get_db
+from src.models.models import Users
 
 load_dotenv()
 

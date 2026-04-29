@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 
 from src.modules.departments.repository import DepartmentRepository
-from src.models.models.models import Departments
+from src.models.models import Departments
 from src.modules.departments.schema import DepartmentsInsertSchema
 
 

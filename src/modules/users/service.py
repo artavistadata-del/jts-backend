@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import HTTPException, status
 from src.core.security import get_password_hash, verify_password,create_access_token
 from src.modules.departments.service import DepartmentService
-from src.models.models.models import Users as UserModels
+from src.models.models import Users as UserModels
 from src.modules.users.schema import UserSignUp as UserSchemaSignUp
 from src.modules.users.schema import UserSignIn as UserSchemaSignIn
 

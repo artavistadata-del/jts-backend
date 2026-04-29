@@ -1,7 +1,7 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.models.models.models import Departments, Users
+from src.models.models import Departments, Users
 
 
 class DepartmentRepository :

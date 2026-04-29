@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
-from src.config.dept_registry import get_powerbi_config
-from src.config.powerbi_conf import TENANT_ID, CLIENT_ID, CLIENT_SECRET
+from src.modules.departments.registry import get_powerbi_config
+from src.infra.powerbi.client import TENANT_ID, CLIENT_ID, CLIENT_SECRET
 from src.core.security import get_current_user
-from src.models.models.models import Users
+from src.models.models import Users
 
 router = APIRouter(prefix="/v1/reports", tags=["Power BI"])
 

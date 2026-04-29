@@ -2,10 +2,10 @@ import io
 import polars as pl
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
-from src.config.minio_conf import minio_client
-from src.config.config import engine 
-from src.models.models.models import HistoryUpload, StatusEnum
-from src.config.dept_registry import get_dept_config 
+from src.infra.upload.client import minio_client
+from src.core.database import engine 
+from src.models.models import HistoryUpload, StatusEnum
+from src.modules.departments.registry import get_dept_config 
 
 class BaseCleaningService:
     def __init__(self, db_session):

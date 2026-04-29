@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.models.models.models import HistoryUpload, StatusEnum
+from src.models.models import HistoryUpload, StatusEnum
 
 class TransactionRepository:
     def __init__(self, db: Session):

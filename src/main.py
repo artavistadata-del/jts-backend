@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from src.config.config import engine
+from src.core.database import engine
 from src.modules.departments import route as dept_router
 # from finance import finance_router
 from src.modules.history import route as history_router
-from src.models.models import models 
+from src.models import models 
 from src.infra.powerbi import route as powerbi_router
 from src.modules.transaction import router as transaction_router
 from src.modules.users import route as users_router

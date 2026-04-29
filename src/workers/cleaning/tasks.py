@@ -1,4 +1,4 @@
-from src.config.config import celery_app, SessionLocal
+from src.core.database import celery_app, SessionLocal
 from src.workers.cleaning.service_factory import get_cleaning_service
 from celery.utils.log import get_task_logger
 

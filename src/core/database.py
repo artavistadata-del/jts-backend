@@ -1,23 +1,14 @@
-import os
 from celery import Celery
-from dotenv import load_dotenv
 from minio import Minio
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-
-from src.config.celery_conf import celery_app
-from src.config.minio_conf import minio_client
-
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-MINIO_URL = os.getenv("MINIO_URL")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
+from src.workers.celery_app import celery_app
+from src.infra.upload.client import minio_client
+from src.core.config import settings
 
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

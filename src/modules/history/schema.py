@@ -2,7 +2,7 @@ from datetime import date
 from typing import Optional
 from pydantic import BaseModel, Field
 
-from src.models.models.models import StatusEnum
+from src.models.models import StatusEnum
 
 class HistoryUpload(BaseModel) :
     id_users : int

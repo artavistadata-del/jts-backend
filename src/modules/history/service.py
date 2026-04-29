@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy import text
 from src.workers.cleaning.tasks import commit_upsert_task
-from src.config.dept_registry import get_dept_config
-from src.models.models.models import HistoryUpload as HistoryUploadModels, StatusEnum, Users
+from src.modules.departments.registry import get_dept_config
+from src.models.models import HistoryUpload as HistoryUploadModels, StatusEnum, Users
 from src.modules.history.schema import HistoryUpload as HistoryUploadSchema
 from src.modules.history.repository import HistoryRepository 
 

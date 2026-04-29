@@ -1,4 +1,4 @@
-from src.models.models.models import Users
+from src.models.models import Users
 from sqlalchemy.orm import Session, joinedload
 
 

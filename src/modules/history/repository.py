@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, defer
-from src.models.models.models import HistoryUpload, RoleEnum, Users
+from src.models.models import HistoryUpload, RoleEnum, Users
 
 class HistoryRepository :
     def __init__(self, db : Session):

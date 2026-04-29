@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from src.config.dependencies import get_role_service
+from src.core.dependencies import get_role_service
 from src.core.security import get_current_user
 from src.modules.roles.service import RoleService
 

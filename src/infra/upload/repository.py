@@ -1,7 +1,6 @@
 from minio import Minio, S3Error
 import typing
-
-from src.config.dept_registry import get_dept_config
+from src.modules.departments.registry import get_dept_config
 
 class UploadRepository:
     def __init__(self, client: Minio):

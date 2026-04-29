@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
-from src.config.dependencies import get_dept_service
+from src.core.dependencies import get_dept_service
 from src.core.security import RoleChecker, get_current_user
 from src.modules.departments.service import DepartmentService
-from src.models.models.models import Users
+from src.models.models import Users
 from src.modules.departments.schema import DepartmentsInsertSchema
 
 

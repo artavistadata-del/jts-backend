@@ -3,7 +3,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from src.models.models.models import Base
+from src.models.models import Base
 
 
 class DepartmentEnum(str, Enum) :

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from src.config.dependencies import get_user_service
+from src.core.dependencies import get_user_service
 from src.core.security import RoleChecker, get_current_user
-from src.models.models.models import Users
+from src.models.models import Users
 from src.modules.users.schema import UserMeResponse, UserSignIn as UserSchemaSignIn, UserUpdateSchema
 from src.modules.users.schema import UserSignUp as UserSchemaSignUp
 from src.modules.users.service import UserService

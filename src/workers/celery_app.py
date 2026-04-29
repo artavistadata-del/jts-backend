@@ -1,8 +1,9 @@
 from celery import Celery
+from src.core.config import settings
 
 celery_app = Celery(
     "dashboard_worker",
-    broker="redis://localhost:6379/1",
+    broker=settings.REDIS_URL_CELERY,
     include=["src.workers.cleaning.tasks"] 
 )
 

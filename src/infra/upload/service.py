@@ -1,8 +1,8 @@
-from datetime import datetime, date
+from datetime import datetime
 import os
 import uuid
 from src.workers.cleaning.tasks import analyze_excel_task
-from src.models.models.models import Users
+from src.models.models import Users
 from src.modules.history.schema import HistoryUpload as HistoryUploadSchema
 from src.modules.history.service import HistoryService
 from src.infra.upload.repository import UploadRepository
