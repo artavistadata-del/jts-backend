@@ -1,12 +1,12 @@
 celery :
 
 1. cd ~/jts-project/project-dashboard
-2. celery -A config.celery_conf worker --loglevel=info
+2. celery -A src.workers.celery_app worker --loglevel=info
 
 fastAPI :
 
 1. cd ~/jts-project/project-dashboard
-2. uvicorn main:app --reload
+2. uvicorn src.main:app --host 0.0.0.0 --port 8881 --reload
 
 📁 backend/
 ├── 📄 main.py # Entry point aplikasi (FastAPI instance)
