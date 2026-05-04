@@ -8,6 +8,9 @@ router = APIRouter(
     tags=["Role"]
 )
 allow_admin_only = RoleChecker(["ADMIN"])
+# ==========================================
+# GET ALL ROLES
+# ==========================================
 @router.get("/")
 def get_me(
     userNow = Depends(allow_admin_only),

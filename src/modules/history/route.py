@@ -13,7 +13,7 @@ router = APIRouter(
     )
 
 
-@router.get("/all", response_model=TransactionPaginatedResponse)
+@router.get("/", response_model=TransactionPaginatedResponse)
 def read_history(
     userNow: Users = Depends(get_current_user), 
     page: int = Query(1, ge=1),
