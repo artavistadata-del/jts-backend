@@ -32,6 +32,14 @@ def commit_upsert_task(self, history_id: int, filename: str, id_dept: int):
         #     return f"Canceled complete for ID {history_id}"
         # else :
         #     return f"Action tidak ada !"
+
+    except ValueError as ve:
+        # ========================================================
+        # ERROR VALIDASI / FAIL-FAST: JANGAN LAKUKAN RETRY!
+        # ========================================================
+        print(f"Validasi Gagal untuk ID {history_id}. Tidak akan di-retry: {ve}")
+        raise ve
+    
     except Exception as e:
         logger.error(f"Gagal Upsert ID {history_id}: {str(e)}")
         raise self.retry(exc=e, countdown=60)

@@ -67,6 +67,7 @@ def get_upload_status(
     
     elif record.status == StatusEnum.FAILED:
         response["error_detail"] = record.analysis_result.get("error") if record.analysis_result else "Unknown error"
+        # response["error_detail"] = record.notes if record.notes else "Unknown error"
 
     return response
 

@@ -104,7 +104,7 @@ class FactFinance(Base):
     __table_args__ = (
         UniqueConstraint(
             'bulan', 'account_name', 'report_type', 'idx_category', 
-            'category', 'idx_sub_category', 'sub_category', 'sub_sub_category', 
+            'category', 'idx_sub_category', 'sub_category', 'sub_sub_category', 'actual_budget',
             name='uix_finance_data'
         ),
         {'schema': 'oltp_main'}
@@ -121,6 +121,7 @@ class FactFinance(Base):
     sub_category: Mapped[Optional[str]] = mapped_column(String(255))
     sub_sub_category: Mapped[Optional[str]] = mapped_column(String(255)) 
     account_name: Mapped[Optional[str]] = mapped_column(String(255))
+    actual_budget: Mapped[Optional[str]] = mapped_column(String(50), index=True)
     
     bulan: Mapped[datetime.date] = mapped_column(Date, index=True)
     value: Mapped[float] = mapped_column(Float)
