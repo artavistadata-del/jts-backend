@@ -1,4 +1,5 @@
 from typing import Optional
+import shortuuid
 import datetime
 import enum
 from sqlalchemy.dialects.postgresql import JSONB
@@ -57,7 +58,7 @@ class Users(Base):
     password: Mapped[Optional[str]] = mapped_column(String(255))
     nama: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default='1')
-
+    public_id = Column(String(22), unique=True, index=True, default=shortuuid.uuid)
     departments: Mapped['Departments'] = relationship('Departments', back_populates='users')
     roles: Mapped['Roles'] = relationship('Roles', back_populates='users')
     history_upload: Mapped[list['HistoryUpload']] = relationship('HistoryUpload', back_populates='users')
@@ -75,7 +76,6 @@ class HistoryUpload(Base):
     id_dept: Mapped[int] = mapped_column(Integer, ForeignKey('oltp_main.departments.id_dept'), index=True)
     
     file_name: Mapped[str] = mapped_column(String(255)) 
-    # time_stamp: Mapped[datetime.date] = mapped_column(Date, default=datetime.date.today)
 
     time_stamp: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), # timezone=True disarankan untuk PostgreSQL
@@ -99,8 +99,6 @@ class HistoryUpload(Base):
 
 class FactFinance(Base):
     __tablename__ = 'fact_finance'
-    
-    # [PERUBAHAN 2] Menambahkan UniqueConstraint ke dalam __table_args__
     __table_args__ = (
         UniqueConstraint(
             'bulan', 'account_name', 'report_type', 'idx_category', 

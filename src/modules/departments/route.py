@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from src.core.dependencies import get_dept_service
 from src.core.security import RoleChecker, get_current_user
 from src.modules.departments.service import DepartmentService
@@ -13,7 +13,7 @@ router = APIRouter(
 
 allow_admin_only = RoleChecker(["ADMIN"])
 
-@router.get("/all-dept")
+@router.get("/")
 def get_all_dept(
         userNow = Depends(get_current_user),
         dept_service : DepartmentService = Depends(get_dept_service),
@@ -21,7 +21,7 @@ def get_all_dept(
     ):
     return dept_service.display_all_dept()
 
-@router.post("/add-dept")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def add_dept(
     dept_schema : DepartmentsInsertSchema,
     userNow = Depends(allow_admin_only),
@@ -34,7 +34,7 @@ def add_dept(
     }
 
 
-@router.get("/dept-sum", status_code=200)
+@router.get("/summary", status_code=200)
 def get_dept_summary(
         deptService: DepartmentService = Depends(get_dept_service),
         user : Users = Depends(allow_admin_only)

@@ -51,11 +51,12 @@ class DeptOut(BaseModel):
         from_attributes = True
 
 class UserOut(BaseModel):
-    idusers: int = Field(validation_alias="idusers")
-    id_dept : int
+    # idusers: int = Field(validation_alias="idusers")
+    id_user: str = Field(validation_alias="public_id")
+    # id_dept : int
     nama : str
     nik : str
-    id_roles : int
+    # id_roles : int
     is_active : bool
     departments : DeptOut
     roles : RoleOut

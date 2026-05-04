@@ -15,6 +15,9 @@ class UserRepository :
     def get_user_by_nik(self, nik : str) :
         return self.db.query(Users).filter(Users.nik == nik).first()
     
+    def get_user_by_uuid(self, public_id: str) -> Users:
+        return self.db.query(Users).filter(Users.public_id == public_id).first()
+    
     def get_user_by_id(self, id : int) :
         return self.db.query(Users).filter(Users.idusers == id).first()
     
