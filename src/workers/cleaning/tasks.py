@@ -12,6 +12,13 @@ def analyze_excel_task(self, history_id: int, filename: str, id_dept: int):
         service.execute_analyze(history_id, filename)
         return f"Analysis complete for ID {history_id}"
     
+    except ValueError as ve:
+        # ========================================================
+        # ERROR VALIDASI / FAIL-FAST: JANGAN LAKUKAN RETRY!
+        # ========================================================
+        print(f"Validasi Gagal untuk ID {history_id}. Tidak akan di-retry: {ve}")
+        raise ve
+    
     except Exception as e:
         logger.error(f"Gagal Analisis ID {history_id}: {str(e)}")
         raise self.retry(exc=e, countdown=60) 
