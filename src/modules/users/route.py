@@ -17,7 +17,7 @@ router = APIRouter(
 )
 
 # ==========================================
-# SIGN IN
+# SIGN IN [USER ACCESS]
 # ==========================================
 @router.post("/signin")
 def sign_in(userData : UserSchemaSignIn, userService : UserService = Depends(get_user_service)) :
@@ -25,7 +25,7 @@ def sign_in(userData : UserSchemaSignIn, userService : UserService = Depends(get
     return {"message": "sign in berhasil", "data": result}
 
 # ==========================================
-# GET ME
+# GET ME [USER ACCESS]
 # ==========================================
 @router.get("/me", response_model=UserMeResponse)
 def get_me(userNow : Users = Depends(get_current_user)):
@@ -43,7 +43,7 @@ allow_admin_only = RoleChecker(["ADMIN"])
 
 
 # ==========================================
-# SIGN UP
+# SIGN UP [ADMIN ACCESS]
 # ==========================================
 @router.post("/signup", status_code=202)
 def sign_up(userData : UserSchemaSignUp,
@@ -56,7 +56,7 @@ def sign_up(userData : UserSchemaSignUp,
 
 
 # ==========================================
-# GET ALL USER
+# GET ALL USER [ADMIN ACCESS]
 # ==========================================
 @router.get("/", status_code=200)
 def get_all_users(
@@ -74,7 +74,7 @@ def get_all_users(
     }
 
 # ==========================================
-# GET USER BY ID
+# GET USER BY ID [ADMIN ACCESS]
 # ==========================================
 @router.get("/{user_id}", response_model=UserMeResponse )
 def get_me(user_id : str,
@@ -93,7 +93,7 @@ def get_me(user_id : str,
 
 
 # ==========================================
-# UPDATE USER
+# UPDATE USER [ ADMIN & USER ACCESS ]
 # ==========================================
 @router.patch("/{user_id}", status_code=200)
 def update_user(
@@ -102,10 +102,7 @@ def update_user(
     userService: UserService = Depends(get_user_service),
     userNow: Users = Depends(get_current_user)
 ):
-    # result = userService.get_user_by_uuid(user_id)
-    # if not result :
-    #     raise HTTPException(404, 'User Tidak Ditemukan !')
-    
+
     if userNow.roles.role != "ADMIN" and userNow.public_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -123,7 +120,7 @@ def update_user(
     result = userService.update_user(
         nik=target_user.nik,
         password=updateData.password,
-        nama=updateData.name,
+        nama=updateData.nama,
         id_role=final_id_role,
         id_dept=final_id_dept,
     )
@@ -135,7 +132,7 @@ def update_user(
 
 
 # ==========================================
-# NON ACTIVE USER
+# NON ACTIVE USER [ ADMIN ACCESS ]
 # ==========================================
 @router.delete("/{id_user}", status_code=200)
 def nonactive_user(
@@ -150,7 +147,7 @@ def nonactive_user(
     }
 
 # ==========================================
-# RE ACTIVE USER
+# RE ACTIVE USER [ ADMIN ACCESS ]
 # ==========================================
 @router.patch("/{id_user}/reactivate", status_code=200)
 def reactivate_user_route(
@@ -169,31 +166,31 @@ def reactivate_user_route(
 
 
 
-@router.post("/migrate-uuid-manual", tags=["System"])
-def migrate_users_add_uuid(db: Session = Depends(get_db)):
-    # 1. ALTER TABLE: Tambahkan kolom public_id ke database
-    try:
-        db.execute(text("ALTER TABLE oltp_main.users ADD COLUMN public_id VARCHAR(22);"))
-        db.commit()
-    except Exception as e:
-        db.rollback() 
-        # Kalau gagal berarti kolom sudah ada, kita lanjut saja.
+# @router.post("/migrate-uuid-manual", tags=["System"])
+# def migrate_users_add_uuid(db: Session = Depends(get_db)):
+#     # 1. ALTER TABLE: Tambahkan kolom public_id ke database
+#     try:
+#         db.execute(text("ALTER TABLE oltp_main.users ADD COLUMN public_id VARCHAR(22);"))
+#         db.commit()
+#     except Exception as e:
+#         db.rollback() 
+#         # Kalau gagal berarti kolom sudah ada, kita lanjut saja.
 
-    # 2. ISI DATA LAMA: Cari user yang belum punya UUID
-    users_tanpa_uuid = db.query(Users).filter(Users.public_id == None).all()
+#     # 2. ISI DATA LAMA: Cari user yang belum punya UUID
+#     users_tanpa_uuid = db.query(Users).filter(Users.public_id == None).all()
     
-    for user in users_tanpa_uuid:
-        user.public_id = shortuuid.uuid() # Generate UUID untuk user lama
+#     for user in users_tanpa_uuid:
+#         user.public_id = shortuuid.uuid() # Generate UUID untuk user lama
         
-    db.commit()
+#     db.commit()
 
-    try:
-        db.execute(text("ALTER TABLE users ADD CONSTRAINT users_public_id_unique UNIQUE (public_id);"))
-        db.commit()
-    except Exception:
-        db.rollback()
+#     try:
+#         db.execute(text("ALTER TABLE users ADD CONSTRAINT users_public_id_unique UNIQUE (public_id);"))
+#         db.commit()
+#     except Exception:
+#         db.rollback()
 
-    return {
-        "status": "Berhasil",
-        "message": f"Berhasil menambahkan kolom dan meng-generate UUID untuk {len(users_tanpa_uuid)} user lama."
-    }
+#     return {
+#         "status": "Berhasil",
+#         "message": f"Berhasil menambahkan kolom dan meng-generate UUID untuk {len(users_tanpa_uuid)} user lama."
+#     }

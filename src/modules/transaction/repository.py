@@ -5,6 +5,9 @@ class TransactionRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    # ==========================================
+    # GET transaction [MANAGER & USER ACCESS ]
+    # ==========================================
     def get_paginated_transactions(self, model_class, skip: int, limit: int, user_id_filter: int = None, report_type: str = None):
         # 1. Join tabel Fact (contoh: FactFinance) dengan HistoryUpload
         query = self.db.query(model_class).join(
@@ -31,6 +34,9 @@ class TransactionRepository:
                        
         return results, total_count
 
+    # ==========================================
+    # UPDATE SINGLE ROW [MANAGER ACCESS ]
+    # ==========================================
     def update_single_row(self, model_class, id_fact: int, new_value: float, manager_nik: str):
         # Cari data berdasarkan ID tabel fact yang dilempar
         row = self.db.query(model_class).get(id_fact)

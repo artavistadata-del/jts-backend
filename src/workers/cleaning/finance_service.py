@@ -204,7 +204,7 @@ class FinanceService(BaseCleaningService):
             self.db.commit()
             raise e
 
-    def execute_cancel(self, history_id: int):
+    def execute_cancel(self, history_id: int, filename: str):
         stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
         try:
             self.db.execute(text(f"DROP TABLE IF EXISTS {stg_table}"))

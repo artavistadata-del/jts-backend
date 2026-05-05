@@ -9,7 +9,7 @@ router = APIRouter(
 )
 allow_admin_only = RoleChecker(["ADMIN"])
 # ==========================================
-# GET ALL ROLES
+# GET ALL ROLES [ ADMIN ACCESS ]
 # ==========================================
 @router.get("/")
 def get_me(

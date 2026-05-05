@@ -12,8 +12,8 @@ class UserSignUp(BaseModel) :
     nama : str = Field(..., max_length=255)
     nik : str = Field(..., min_length=16, max_length=16)
     password : str = Field(..., min_length=8,max_length=72)
-    id_role : int
-    id_dept : int
+    id_role : str
+    id_dept : str
 
 class UserSignIn(BaseModel):
     nik: str = Field(..., min_length=16, max_length=16)
@@ -21,10 +21,11 @@ class UserSignIn(BaseModel):
 
 
 class UserUpdateSchema(BaseModel):
-    name: Optional[str] = Field(None, min_length=8)
+    nama: Optional[str] = Field(None, min_length=8)
     password: Optional[str] = Field(None, min_length=8)
-    id_role: Optional[int] = None
-    id_dept: Optional[int] = None
+    id_role: Optional[str] = None
+    id_dept: Optional[str] = None
+
 
 
 
@@ -38,7 +39,7 @@ class UserUpdateSchema(BaseModel):
 # ==========================================================================
 class RoleOut(BaseModel):
     id_roles: int
-    role: str 
+    role_name: str = Field(validation_alias="role")
 
     class Config:
         from_attributes = True
@@ -51,12 +52,9 @@ class DeptOut(BaseModel):
         from_attributes = True
 
 class UserOut(BaseModel):
-    # idusers: int = Field(validation_alias="idusers")
     id_user: str = Field(validation_alias="public_id")
-    # id_dept : int
     nama : str
     nik : str
-    # id_roles : int
     is_active : bool
     departments : DeptOut
     roles : RoleOut

@@ -9,12 +9,27 @@ class DepartmentService :
     def __init__(self, dept_repo : DepartmentRepository):
         self.repo = dept_repo
 
+    # ==========================================
+    # GET DEPT BY DEPT [ADMIN ACCESS ]
+    # ==========================================
     def display_dept_by_dept(self, name : str) :
         return self.repo.get_dept_by_dept(name)
     
-    def display_dept_by_id(self, id_dept : id) :
+    # ==========================================
+    # GET DEPT BY ID [ADMIN ACCESS ]
+    # ==========================================
+    def display_dept_by_id(self, id_dept : int) :
         return self.repo.get_dept_by_id(id_dept)
     
+    # ==========================================
+    # GET DEPT BY UUID [ADMIN ACCESS ]
+    # ==========================================
+    def display_dept_by_uuid(self, id_dept : str) :
+        return self.repo.get_dept_by_uuid(id_dept)
+    
+    # ==========================================
+    # GET ALL DEPT [ADMIN ACCESS ]
+    # ==========================================
     def display_all_dept(self) :
         dept_find = self.repo.get_all_dept()
         
@@ -24,7 +39,7 @@ class DepartmentService :
         hasil_format = []
         for r in dept_find:
             hasil_format.append({
-                "id_dept": r.id_dept,
+                "id_dept": r.public_id,
                 "dept_name": r.name_dept
             })
         
@@ -33,7 +48,9 @@ class DepartmentService :
             "data": hasil_format
         }
     
-
+    # ==========================================
+    # ADD DEPT [ADMIN ACCESS ]
+    # ==========================================
     def add_dept(self, dept : DepartmentsInsertSchema) :
         find_dept = self.display_dept_by_dept(dept.dept_name.upper())
 
@@ -47,7 +64,9 @@ class DepartmentService :
         )
         return self.repo.insert_dept(dept_model)
 
-
+    # ==========================================
+    # GET DEPT WITH SUMMARY  [ADMIN ACCESS ]
+    # ==========================================
     def get_department_staff_summary(self):
         data = self.repo.get_staff_count_per_dept()
         

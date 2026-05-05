@@ -6,6 +6,9 @@ class TransactionService:
     def __init__(self, repo: TransactionRepository):
         self.repo = repo
 
+    # ==========================================
+    # UPDATE TRANSACTION [MANAGER ACCESS ]
+    # ==========================================
     def edit_transaction(self, id_dept: int, id_fact: int, new_value: float, manager_nik: str):
         # 1. Tanya registry: "Untuk ID Dept ini, model tabelnya apa?"
         config = get_dept_config(id_dept)
@@ -18,7 +21,9 @@ class TransactionService:
             new_value=new_value,
             manager_nik=manager_nik
         )
-    
+    # ==========================================
+    # GET ALL TRANSACTION [MANAGER ACCESS ]
+    # ==========================================
     def list_transactions(self, id_dept: int, page: int, size: int, user_role: str, user_id: int, report_type: str = None):
         # 1. Ambil model dinamis sesuai departemen
         config = get_dept_config(id_dept)

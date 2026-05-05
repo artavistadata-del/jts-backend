@@ -2,6 +2,7 @@ from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from src.core.security import get_current_user 
+from src.infra.upload.schema import ConfirmRequest, ConfirmUploadInput
 from src.modules.history.service import HistoryService
 from src.models.models import StatusEnum, Users
 from src.infra.upload.service import UploadService
@@ -9,11 +10,15 @@ from src.infra.upload.service import UploadService
 from src.core.dependencies import get_history_service, get_minio_service, get_minio_service 
 
 router = APIRouter(
-    prefix='/v1/upload',
+    prefix='/v1/uploads',
     tags=["Upload"]
 )
 
-@router.post("/file")
+
+# ==========================================
+# UPLOAD FILE [ USER ACCESS ]
+# ==========================================
+@router.post("/")
 async def upload_payroll_excel(
     file: UploadFile = File(...),
     userNow: Users = Depends(get_current_user),
@@ -40,13 +45,16 @@ async def upload_payroll_excel(
     return result
 
 
-@router.get("/status/{history_id}")
+# ==========================================
+# GET STATUS HISTORY -> STATUS CHECK [ USER ACCESS ]
+# ==========================================
+@router.get("/{history_id}")
 def get_upload_status(
-        history_id: int,
+        history_id: str,
         history_service : HistoryService = Depends(get_history_service),
         userNow: Users = Depends(get_current_user)
     ):
-    record = history_service.get_history_by_id(history_id)
+    record = history_service.get_history_by_uuid(history_id)
     
     if not record:
         raise HTTPException(status_code=404, detail="Data history tidak ditemukan.")
@@ -58,7 +66,7 @@ def get_upload_status(
         )
 
     response = {
-        "history_id": record.id_history_upload,
+        "history_id": record.public_id,
         "status": record.status,
     }
 
@@ -71,15 +79,19 @@ def get_upload_status(
 
     return response
 
-@router.post("/confirm/{history_id}")
+# ==========================================
+# CONFIRM HISTORY -> Confirm From User [ USER ACCESS ]
+# ==========================================
+@router.post("/{history_id}/confirm")
 def confirm_upload(
-        history_id: int,
+        history_id: str,
+        action : ConfirmRequest,
         history_service : HistoryService = Depends(get_history_service),
         userNow: Users = Depends(get_current_user)
     ):
 
     
-    record = history_service.get_history_by_id(history_id)
+    record = history_service.get_history_by_uuid(history_id)
     
 
     if not record:
@@ -91,11 +103,11 @@ def confirm_upload(
             detail="Akses ditolak. Anda tidak diizinkan memproses data milik pengguna lain."
         )
 
-    history_service.confirm_and_process_upload(history_id)
+    history_service.confirm_and_process_upload(record.id_history_upload, action.action)
 
     return {
         "status": "success", 
-        "message": "Proses penyimpanan permanen dimulai."
+        "message": "Berhasil Melakukan Aksi"
     }
 
 

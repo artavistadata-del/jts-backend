@@ -28,9 +28,10 @@ class StatusEnum(str, enum.Enum):
 class Departments(Base):
     __tablename__ = 'departments'
     __table_args__ = {'schema': 'oltp_main'}
-
+    
     id_dept: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name_dept: Mapped[Optional[str]] = mapped_column(String(45))
+    public_id = Column(String(22), unique=True, index=True, default=shortuuid.uuid)
 
     users: Mapped[list['Users']] = relationship('Users', back_populates='departments')
     history_upload: Mapped[list['HistoryUpload']] = relationship('HistoryUpload', back_populates='departments_history')
@@ -43,6 +44,7 @@ class Roles(Base):
     role: Mapped[Optional[RoleEnum]] = mapped_column(
         Enum(RoleEnum, values_callable=lambda cls: [member.value for member in cls], name='role_enum', schema='oltp_main')
     )
+    public_id = Column(String(22), unique=True, index=True, default=shortuuid.uuid)
 
     users: Mapped[list['Users']] = relationship('Users', back_populates='roles')
     history_upload: Mapped[list['HistoryUpload']] = relationship('HistoryUpload', back_populates='roles_history')
@@ -71,7 +73,7 @@ class HistoryUpload(Base):
     
     # [PERUBAHAN 1] Mengganti users_nik menjadi id_users (Integer)
     id_users: Mapped[int] = mapped_column(Integer, ForeignKey('oltp_main.users.idusers'), index=True)
-    
+    public_id = Column(String(22), unique=True, index=True, default=shortuuid.uuid)
     id_roles: Mapped[int] = mapped_column(Integer, ForeignKey('oltp_main.roles.id_roles'), index=True)
     id_dept: Mapped[int] = mapped_column(Integer, ForeignKey('oltp_main.departments.id_dept'), index=True)
     

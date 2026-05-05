@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-
+from typing import Optional
+from fastapi import Query, Depends, APIRouter, HTTPException
 from src.core.security import get_current_user
 from src.core.dependencies import get_db, get_transaction_service # Asumsi kamu punya dependency ini
 from src.modules.transaction.schema import EditTransactionRequest
@@ -15,10 +16,10 @@ router = APIRouter(
     )
 
 
-from typing import Optional
-from fastapi import Query, Depends, APIRouter, HTTPException
-
-@router.get("/list")
+# ==========================================
+# GET ALL TRANSACTION [MANAGER ACCESS ]
+# ==========================================
+@router.get("/")
 def get_department_transactions(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
@@ -42,8 +43,10 @@ def get_department_transactions(
         raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server.{e}")
     
 
-
-@router.patch("/edit/{id_fact}")
+# ==========================================
+# UPDATE TRANSACTION [MANAGER ACCESS ]
+# ==========================================
+@router.patch("/{id_fact}")
 def edit_single_transaction(
     id_fact: int, 
     payload: EditTransactionRequest,

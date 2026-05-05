@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from sqlalchemy import text
+from src.infra.upload.schema import ConfirmUploadInput
 from src.workers.cleaning.tasks import commit_upsert_task
 from src.modules.departments.registry import get_dept_config
 from src.models.models import HistoryUpload as HistoryUploadModels, StatusEnum, Users
@@ -11,6 +12,9 @@ class HistoryService :
     def __init__(self, history_repo : HistoryRepository):
         self.history_repo = history_repo
 
+    # ==========================================
+    # ADD HISTORY
+    # ==========================================
     def add_history(self, history_schema : HistoryUploadSchema):
         history_models = HistoryUploadModels(
             id_users = history_schema.id_users,
@@ -23,7 +27,9 @@ class HistoryService :
         )
         return self.history_repo.insert_history(history_models)
     
-
+    # ==========================================
+    # GEL ALL HISTORY
+    # ==========================================
     def get_history_paginated(self, userNow: Users, page: int = 1, size: int = 10):
         if page < 1:
             page = 1
@@ -53,12 +59,22 @@ class HistoryService :
             "total_pages": (total + size - 1) // size 
         }
     
-    
+    # ==========================================
+    # GET HISTORY BY ID
+    # ==========================================
     def get_history_by_id(self, id_hist : int) :
         return self.history_repo.get_history_by_id_hist(id_hist)
     
-
-    def confirm_and_process_upload(self, history_id: int):
+    # ==========================================
+    # GET HISTORY BY UUID
+    # ==========================================
+    def get_history_by_uuid(self, uuid_hist : str) :
+        return self.history_repo.get_history_by_uuid_hist(uuid_hist)
+    
+    # ==========================================
+    # CONFIRM UPLOAD
+    # ==========================================
+    def confirm_and_process_upload(self, history_id: int, action : str):
         record = self.history_repo.get_history_by_id_hist(history_id)
         
         if not record or record.status != StatusEnum.AWAITING_PREVIEW:
@@ -68,15 +84,17 @@ class HistoryService :
         
         self.history_repo.update_history(record)
         
-        commit_upsert_task.delay(history_id, record.file_name, record.id_dept)
+        commit_upsert_task.delay(history_id, record.file_name, record.id_dept, action.value)
 
         return True
     
 
+    # ==========================================
+    # PREVIEW HISTORY -> APPROVE/REJECT [ ADMIN ]
+    # ==========================================
+    def review_history(self, history_id: str, action: StatusEnum, notes: str, manager_id_dept: int):
 
-    def review_history(self, history_id: int, action: StatusEnum, notes: str, manager_id_dept: int):
-
-        record = self.history_repo.get_history_by_id_hist(history_id)
+        record = self.history_repo.get_history_by_uuid_hist(history_id)
         
         if not record:
             raise HTTPException(status_code=404, detail="Data History tidak ditemukan.")
@@ -96,7 +114,7 @@ class HistoryService :
         # 5. EKSEKUSI REJECT ATAU APPROVE
         if action == StatusEnum.REJECTED:
             # Hapus data transaksi
-            self.history_repo.delete_related_facts(target_model, history_id)
+            self.history_repo.delete_related_facts(target_model, record.id_history_upload)
             
             # Update status history & catatan
             record.status = StatusEnum.REJECTED

@@ -21,6 +21,7 @@ minio
 sqlalchemy>=2.0.29
 psycopg2-binary>=2.9.9
 shortuuid
+alembic
 
 # Security & Authentication (JWT)
 python-jose[cryptography]==3.3.0

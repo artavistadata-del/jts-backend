@@ -12,7 +12,11 @@ class UploadService:
     def __init__(self, minio_repo: UploadRepository, history_service: HistoryService):
         self.minio_repo = minio_repo
         self.history_service = history_service
+    
 
+    # ==========================================
+    # UPLOAD FILE [USER ACCESS]
+    # ==========================================
     def process_payroll_upload(self, user: Users, file_name: str, file_stream: typing.BinaryIO, file_size: int, content_type: str):
         """Mengorkestrasi upload MinIO dan pencatatan histori Database"""
         
@@ -44,15 +48,16 @@ class UploadService:
         
         success_upload = self.history_service.add_history(history_schema=history_schema)
 
-        result =  success_upload.id_history_upload
+        # result =  success_upload.id_history_upload
+        result =  success_upload.public_id, success_upload.id_history_upload
 
-        analyze_excel_task.delay(result, storage_name, user.id_dept)
+        analyze_excel_task.delay(result[1], storage_name, user.id_dept)
 
         return {
             "status": "success",
             "message": "File berhasil diunggah dan histori dicatat.",
             "data": {
-                "id_history" : result,
+                "id_history" : result[0],
                 "file_name" : file_name
             }
         }

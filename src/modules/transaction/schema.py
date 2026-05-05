@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EditTransactionRequest(BaseModel):
@@ -10,9 +10,10 @@ from datetime import datetime
 from zoneinfo import ZoneInfo # Modul bawaan Python 3.9+
 
 class TransactionItemResponse(BaseModel):
-    id_history_upload: int
-    id_users: int
-    id_roles : int
+    # id_history_upload: int
+    id_history: str = Field(validation_alias="public_id")
+    # id_users: int
+    # id_roles : int
     # id_dept : int
     file_name: str
     notes: str | None = None
@@ -20,6 +21,7 @@ class TransactionItemResponse(BaseModel):
     status: str
     nik : str
     nama_user : str
+    # analysis_result : dict | None
 
 
     # Decorator ini akan mencegat data time_stamp sebelum jadi JSON

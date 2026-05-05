@@ -6,7 +6,9 @@ class UploadRepository:
     def __init__(self, client: Minio):
         self.client = client
 
-
+    # ==========================================
+    # UPLOAD FILE [MANAGER & USER ACCESS]
+    # ==========================================
     def upload_file(self, file_name: str, file_stream: typing.BinaryIO, file_size: int, content_type: str, dept_id : int):
         """Hanya bertugas mengirim file fisik ke MinIO"""
         # bucket_name = f"raw-dept-{dept_id}"

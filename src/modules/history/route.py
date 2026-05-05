@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+import shortuuid
+from sqlalchemy import text
 from sqlalchemy.orm import Session
+from src.core.database import get_db
 from src.core.dependencies import get_history_service
 from src.core.security import get_current_user
 from src.modules.transaction.schema import TransactionPaginatedResponse
 from src.modules.history.service import HistoryService
-from src.models.models import RoleEnum, Users
+from src.models.models import HistoryUpload, RoleEnum, Users
 from src.modules.history.schema import ActionHistoryPayload
 
 router = APIRouter(
@@ -12,7 +15,9 @@ router = APIRouter(
         tags=["History"]
     )
 
-
+# ==========================================
+# GET ALL HISTORY [MANAGER & USER ACCESS]
+# ==========================================
 @router.get("/", response_model=TransactionPaginatedResponse)
 def read_history(
     userNow: Users = Depends(get_current_user), 
@@ -24,11 +29,12 @@ def read_history(
     result = service.get_history_paginated(userNow, page, limit)
     return result
 
-
-# 2. Endpoint Untuk Reject/Approve
-@router.post("/action/{id_history}")
+# ==========================================
+# REJECT/APPROVE HISTORY [MANAGER ACCESS]
+# ==========================================
+@router.patch("/{id_history}")
 def review_uploaded_file(
-    id_history: int,
+    id_history: str,
     payload: ActionHistoryPayload,
     userNow: Users = Depends(get_current_user),
     service: HistoryService = Depends(get_history_service)
@@ -46,3 +52,30 @@ def review_uploaded_file(
     )
     
     return {"status": "success", "message": result_message}
+
+
+@router.post("/migrate-uuid", tags=["System"])
+def migrate_all_tables_add_uuid(db: Session = Depends(get_db)):
+    # ==========================================
+    # 1. MIGRASI HISTORY UPLOAD
+    # ==========================================
+    try:
+        # Tambah kolom public_id
+        db.execute(text("ALTER TABLE oltp_main.history_upload ADD COLUMN public_id VARCHAR(22);"))
+        db.commit()
+    except Exception:
+        db.rollback() # Abaikan error kalau kolom ternyata sudah ada
+
+    # Cari data lama yang public_id-nya masih kosong, lalu isi pakai shortuuid
+    history_tanpa_uuid = db.query(HistoryUpload).filter(HistoryUpload.public_id == None).all()
+    for hist in history_tanpa_uuid:
+        hist.public_id = shortuuid.uuid()
+    db.commit()
+
+    try:
+        # Kunci pakai Constraint Unique & bikin Index biar cepat
+        db.execute(text("ALTER TABLE oltp_main.history_upload ADD CONSTRAINT history_public_id_unique UNIQUE (public_id);"))
+        db.execute(text("CREATE INDEX ix_history_upload_public_id ON oltp_main.history_upload (public_id);"))
+        db.commit()
+    except Exception:
+        db.rollback()

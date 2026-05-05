@@ -18,17 +18,8 @@ class UserService :
         self.role_service = role_service
         self.dept_service = dept_service
 
-
-    '''
-        ==============================================================================
-        User Sign In di disini 
-        UsersSchemaSignIn : Iput dari Users (DTO)
-
-        ==============================================================================
-    '''
-
     # ==========================================
-    # SIGN IN
+    # SIGN IN [ USER ACCESS]
     # ==========================================
     def signIn(self, userSchema : UserSchemaSignIn) :
         userFind = self.user_repo.get_user_by_nik(nik=userSchema.nik)
@@ -49,7 +40,7 @@ class UserService :
         return {"access_token": access_token, "token_type": "bearer"}
     
     # ==========================================
-    # SIGN UP
+    # SIGN UP [ADMIN ACCESS]
     # ==========================================
     def signUp(self, userSchema : UserSchemaSignUp) :
         userFind = self.user_repo.get_user_by_nik(nik=userSchema.nik)
@@ -58,12 +49,12 @@ class UserService :
 
         hashed_password = get_password_hash(userSchema.password)
 
-        roleFind = self.role_service.display_role_by_id(userSchema.id_role)
+        roleFind = self.role_service.display_role_by_uuid(userSchema.id_role)
 
         if not roleFind :
             raise HTTPException(404, 'Role tidak terdaftar')
         
-        deptFind = self.dept_service.display_dept_by_id(userSchema.id_dept)
+        deptFind = self.dept_service.display_dept_by_uuid(userSchema.id_dept)
 
         if not deptFind :
             raise HTTPException(404, 'Department tidak terdaftar')
@@ -71,12 +62,15 @@ class UserService :
         userModels = UserModels(
             nik = userSchema.nik,
             password = hashed_password,
-            id_roles = userSchema.id_role,
-            id_dept = userSchema.id_dept,
+            id_roles = roleFind.id_roles,
+            id_dept = deptFind.id_dept,
             nama = userSchema.nama
         )
         return self.user_repo.insert_user(userModels)
     
+    # ==========================================
+    # GET ALL USER [ ADMIN ACCESS ]
+    # ==========================================
     def get_all_user(self, page: int = 1, limit: int = 10):
         if page < 1:
             page = 1
@@ -92,16 +86,16 @@ class UserService :
             user_list.append({
                 # "id_user" : user.idusers,
                 "nik": user.nik,
-                "name" : user.nama,
+                "nama" : user.nama,
                 "is_active": user.is_active,
                 "id_user" : user.public_id,
-                "role": {
-                    "id": user.id_roles,
-                    "name": user.roles.role.value if user.roles and user.roles.role else None 
+                "roles": {
+                    "id_roles": user.roles.public_id,
+                    "role_name": user.roles.role.value if user.roles and user.roles.role else None 
                 },
                 "department": {
-                    "id": user.id_dept,
-                    "name": user.departments.name_dept if user.departments else None
+                    "id_dept": user.departments.public_id,
+                    "dept_name": user.departments.name_dept if user.departments else None
                 }
             })
 
@@ -117,7 +111,9 @@ class UserService :
             }
         }
     
-
+    # ==========================================
+    # NON ACTIVE USER [ ADMIN ACCESS ]
+    # ==========================================
     def nonactive_user(self, id_user : str):
         userFind = self.user_repo.get_user_by_uuid(id_user)
         if not userFind:
@@ -133,7 +129,9 @@ class UserService :
 
         return {"nik": userFind.nik , "status": "non-aktif"}
     
-
+    # ==========================================
+    # UPDATE USER [ ADMIN & USER ACCESS ]
+    # ==========================================
     def update_user(self, nik: str, password: Optional[str] = None, 
                     id_role: Optional[int] = None, id_dept: Optional[int] = None, nama : Optional[str] = None):
         
@@ -145,22 +143,24 @@ class UserService :
             user.password = get_password_hash(password)
 
         if id_role:
-            role_find = self.role_service.display_role_by_id(id_role)
+            role_find = self.role_service.display_role_by_uuid(id_role)
             if not role_find:
                 raise HTTPException(404, "Role tidak ditemukan")
-            user.id_roles = id_role
+            user.id_roles = role_find.id_roles
 
         if id_dept:
-            dept_find = self.dept_service.display_dept_by_id(id_dept)
+            dept_find = self.dept_service.display_dept_by_uuid(id_dept)
             if not dept_find:
                 raise HTTPException(404, "Department tidak ditemukan")
-            user.id_dept = id_dept
+            user.id_dept = dept_find.id_dept
         if nama :
             user.nama = nama
         print(user.nama)
         return self.user_repo.update_user(user)
     
-
+    # ==========================================
+    # REACTIVE USER [ ADMIN ACCESS ]
+    # ==========================================
     def reactivate_user(self, id_user : str):
         userFind = self.user_repo.get_user_by_uuid(id_user)
         if not userFind:
@@ -176,9 +176,14 @@ class UserService :
 
         return {"nik": userFind.nik, "status": "aktif"}
 
-
+    # ==========================================
+    # GET USER BY ID [ ADMIN ACCESS ]
+    # ==========================================
     def get_user_by_id(self, id : int) :
         return self.user_repo.get_user_by_id(id)
     
+    # ==========================================
+    # GET USER BY UUID [ ADMIN ACCESS ]
+    # ==========================================
     def get_user_by_uuid(self, uuid : str) :
         return self.user_repo.get_user_by_uuid(uuid)
