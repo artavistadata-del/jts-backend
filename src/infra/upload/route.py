@@ -59,7 +59,7 @@ def get_upload_status(
     if not record:
         raise HTTPException(status_code=404, detail="Data history tidak ditemukan.")
     
-    if record.id_users != userNow.idusers:
+    if record.users_id != userNow.id:
         raise HTTPException(
             status_code=403, 
             detail="Akses ditolak. Anda tidak dapat melihat status milik pengguna lain."
@@ -97,13 +97,13 @@ def confirm_upload(
     if not record:
         raise HTTPException(status_code=404, detail="Data history tidak ditemukan.")
     
-    if record.id_users != userNow.idusers:
+    if record.users_id != userNow.id:
         raise HTTPException(
             status_code=403, 
             detail="Akses ditolak. Anda tidak diizinkan memproses data milik pengguna lain."
         )
 
-    history_service.confirm_and_process_upload(record.id_history_upload, action.action)
+    history_service.confirm_and_process_upload(record.id, action.action)
 
     return {
         "status": "success", 

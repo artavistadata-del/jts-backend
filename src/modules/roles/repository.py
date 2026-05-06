@@ -10,7 +10,7 @@ class RoleRepository:
     # GET ROLE BY ID [ADMIN ACCESS ]
     # ==========================================
     def get_role_by_id(self, id : int) :
-        return self.db.query(Roles).filter(Roles.id_roles == id).first()
+        return self.db.query(Roles).filter(Roles.id == id).first()
     
     # ==========================================
     # GET ROLE BY UUID [ADMIN ACCESS ]
@@ -22,7 +22,7 @@ class RoleRepository:
     # GET ROLE BY ROLE [ADMIN ACCESS]
     # ==========================================
     def get_role_by_role(self, role : str) :
-        return self.db.query(Roles.id_roles).filter(Roles.role == role).first()
+        return self.db.query(Roles.id_roles).filter(Roles.name == role).first()
     
     # ==========================================
     # GET ALL ROLE [ADMIN ACCESS]

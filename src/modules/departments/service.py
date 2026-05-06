@@ -39,8 +39,8 @@ class DepartmentService :
         hasil_format = []
         for r in dept_find:
             hasil_format.append({
-                "id_dept": r.public_id,
-                "dept_name": r.name_dept
+                "id": r.public_id,
+                "name": r.name
             })
         
         return {
@@ -52,7 +52,7 @@ class DepartmentService :
     # ADD DEPT [ADMIN ACCESS ]
     # ==========================================
     def add_dept(self, dept : DepartmentsInsertSchema) :
-        find_dept = self.display_dept_by_dept(dept.dept_name.upper())
+        find_dept = self.display_dept_by_dept(dept.name.upper())
 
         print(find_dept)
 
@@ -60,7 +60,7 @@ class DepartmentService :
             raise HTTPException(302, " Department Sudah Ada")
 
         dept_model = Departments(
-                name_dept = dept.dept_name
+                name = dept.name
         )
         return self.repo.insert_dept(dept_model)
 

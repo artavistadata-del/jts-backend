@@ -32,26 +32,26 @@ class UploadService:
                 file_stream=file_stream,
                 file_size=file_size,
                 content_type=content_type,
-                dept_id=user.id_dept
+                dept_id=user.departments_id
             )
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
         history_schema = HistoryUploadSchema(
             file_name=file_name,
-            id_users=user.idusers,
-            id_dept=user.id_dept,
+            users_id=user.id,
+            departments_id=user.departments_id,
             time_stamp=datetime.now().date(),
-            id_role=user.id_roles,
+            roles_id=user.roles_id,
             file_name_storage= storage_name
         )
         
         success_upload = self.history_service.add_history(history_schema=history_schema)
 
         # result =  success_upload.id_history_upload
-        result =  success_upload.public_id, success_upload.id_history_upload
+        result =  success_upload.public_id, success_upload.id
 
-        analyze_excel_task.delay(result[1], storage_name, user.id_dept)
+        analyze_excel_task.delay(result[1], storage_name, user.departments_id)
 
         return {
             "status": "success",

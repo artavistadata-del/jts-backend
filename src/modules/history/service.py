@@ -3,7 +3,7 @@ from sqlalchemy import text
 from src.infra.upload.schema import ConfirmUploadInput
 from src.workers.cleaning.tasks import commit_upsert_task
 from src.modules.departments.registry import get_dept_config
-from src.models.models import HistoryUpload as HistoryUploadModels, StatusEnum, Users
+from src.models.models import History as HistoryUploadModels, StatusEnum, Users
 from src.modules.history.schema import HistoryUpload as HistoryUploadSchema
 from src.modules.history.repository import HistoryRepository 
 
@@ -17,9 +17,9 @@ class HistoryService :
     # ==========================================
     def add_history(self, history_schema : HistoryUploadSchema):
         history_models = HistoryUploadModels(
-            id_users = history_schema.id_users,
-            id_roles = history_schema.id_role,
-            id_dept = history_schema.id_dept,
+            users_id = history_schema.users_id,
+            roles_id = history_schema.roles_id,
+            departments_id = history_schema.departments_id,
             file_name = history_schema.file_name,
             # time_stamp = history_schema.time_stamp,
             file_name_storage = history_schema.file_name_storage
@@ -38,9 +38,9 @@ class HistoryService :
         skip = (page - 1) * size
         
         # Ekstrak data yang dibutuhkan dari userNow
-        id_user = userNow.idusers
-        role_name = userNow.roles.role.value if userNow.roles else "STAFF"
-        id_dept = userNow.id_dept
+        id_user = userNow.id
+        role_name = userNow.roles.name.value if userNow.roles else "STAFF"
+        id_dept = userNow.departments_id
 
         # Panggil method repository yang baru
         items, total = self.history_repo.get_history_by_access(
@@ -84,7 +84,7 @@ class HistoryService :
         
         self.history_repo.update_history(record)
         
-        commit_upsert_task.delay(history_id, record.file_name, record.id_dept, action.value)
+        commit_upsert_task.delay(history_id, record.file_name, record.departments_id, action.value)
 
         return True
     
@@ -100,7 +100,7 @@ class HistoryService :
             raise HTTPException(status_code=404, detail="Data History tidak ditemukan.")
 
         # 2. Keamanan: Cegah Manager mereview data departemen lain
-        if record.id_dept != manager_id_dept:
+        if record.departments_id != manager_id_dept:
             raise HTTPException(status_code=403, detail="Anda tidak berhak me-review file dari departemen lain.")
 
         # 3. Validasi status harus PENDING
@@ -108,13 +108,13 @@ class HistoryService :
             raise HTTPException(status_code=400, detail=f"File berstatus {record.status.value}, tidak bisa direview.")
 
         # 4. Ambil konfigurasi model (FactFinance/HR/dll) dari registry
-        config = get_dept_config(record.id_dept)
+        config = get_dept_config(record.departments_id)
         target_model = config["model"]
 
         # 5. EKSEKUSI REJECT ATAU APPROVE
         if action == StatusEnum.REJECTED:
             # Hapus data transaksi
-            self.history_repo.delete_related_facts(target_model, record.id_history_upload)
+            self.history_repo.delete_related_facts(target_model, record.id)
             
             # Update status history & catatan
             record.status = StatusEnum.REJECTED

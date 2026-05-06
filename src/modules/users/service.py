@@ -1,13 +1,11 @@
 import math
 from typing import Optional
-
 from fastapi import HTTPException, status
 from src.core.security import get_password_hash, verify_password,create_access_token
 from src.modules.departments.service import DepartmentService
 from src.models.models import Users as UserModels
 from src.modules.users.schema import UserSignUp as UserSchemaSignUp
 from src.modules.users.schema import UserSignIn as UserSchemaSignIn
-
 from src.modules.roles.service import RoleService
 from src.modules.users.repository import UserRepository
 
@@ -49,12 +47,12 @@ class UserService :
 
         hashed_password = get_password_hash(userSchema.password)
 
-        roleFind = self.role_service.display_role_by_uuid(userSchema.id_role)
+        roleFind = self.role_service.display_role_by_uuid(userSchema.roles_id)
 
         if not roleFind :
             raise HTTPException(404, 'Role tidak terdaftar')
         
-        deptFind = self.dept_service.display_dept_by_uuid(userSchema.id_dept)
+        deptFind = self.dept_service.display_dept_by_uuid(userSchema.departments_id)
 
         if not deptFind :
             raise HTTPException(404, 'Department tidak terdaftar')
@@ -62,9 +60,9 @@ class UserService :
         userModels = UserModels(
             nik = userSchema.nik,
             password = hashed_password,
-            id_roles = roleFind.id_roles,
-            id_dept = deptFind.id_dept,
-            nama = userSchema.nama
+            roles_id = roleFind.id,
+            departments_id = deptFind.id,
+            name = userSchema.name
         )
         return self.user_repo.insert_user(userModels)
     
@@ -84,18 +82,17 @@ class UserService :
         user_list = []
         for user in users:
             user_list.append({
-                # "id_user" : user.idusers,
+                "id" : user.public_id,
                 "nik": user.nik,
-                "nama" : user.nama,
+                "name" : user.name,
                 "is_active": user.is_active,
-                "id_user" : user.public_id,
                 "roles": {
-                    "id_roles": user.roles.public_id,
-                    "role_name": user.roles.role.value if user.roles and user.roles.role else None 
+                    "id": user.roles.public_id,
+                    "name": user.roles.name.value if user.roles and user.roles.name else None 
                 },
                 "department": {
-                    "id_dept": user.departments.public_id,
-                    "dept_name": user.departments.name_dept if user.departments else None
+                    "id": user.departments.public_id,
+                    "name": user.departments.name if user.departments else None
                 }
             })
 
@@ -122,7 +119,7 @@ class UserService :
         if not userFind.is_active:
             raise HTTPException(status_code=400, detail="User sudah dalam keadaan non-aktif")
 
-        is_deleted = self.user_repo.deactivate_user(id_user=userFind.idusers)
+        is_deleted = self.user_repo.deactivate_user(id_user=userFind.id)
         
         if not is_deleted:
             raise HTTPException(status_code=500, detail="Gagal menonaktifkan user")
@@ -133,7 +130,7 @@ class UserService :
     # UPDATE USER [ ADMIN & USER ACCESS ]
     # ==========================================
     def update_user(self, nik: str, password: Optional[str] = None, 
-                    id_role: Optional[int] = None, id_dept: Optional[int] = None, nama : Optional[str] = None):
+                    id_role: Optional[int] = None, id_dept: Optional[int] = None, name : Optional[str] = None):
         
         user = self.user_repo.get_user_by_nik(nik)
         if not user:
@@ -146,16 +143,16 @@ class UserService :
             role_find = self.role_service.display_role_by_uuid(id_role)
             if not role_find:
                 raise HTTPException(404, "Role tidak ditemukan")
-            user.id_roles = role_find.id_roles
+            user.roles_id = role_find.id
 
         if id_dept:
             dept_find = self.dept_service.display_dept_by_uuid(id_dept)
             if not dept_find:
                 raise HTTPException(404, "Department tidak ditemukan")
-            user.id_dept = dept_find.id_dept
-        if nama :
-            user.nama = nama
-        print(user.nama)
+            user.departments_id = dept_find.id
+        if name :
+            user.name = name
+        print(user.name)
         return self.user_repo.update_user(user)
     
     # ==========================================
@@ -169,7 +166,7 @@ class UserService :
         if userFind.is_active:
             raise HTTPException(status_code=400, detail="User ini sudah dalam keadaan aktif")
 
-        is_reactivated = self.user_repo.reactivate_user(userFind.idusers)
+        is_reactivated = self.user_repo.reactivate_user(userFind.id)
         
         if not is_reactivated:
             raise HTTPException(status_code=500, detail="Gagal mengaktifkan kembali user")

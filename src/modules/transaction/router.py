@@ -29,11 +29,11 @@ def get_department_transactions(
 ):
     try:
         result = service.list_transactions(
-            id_dept=userNow.id_dept, 
+            id_dept=userNow.departments_id, 
             page=page, 
             size=limit,
-            user_role=userNow.roles.role,
-            user_id=userNow.idusers,
+            user_role=userNow.roles.name,
+            user_id=userNow.id,
             report_type=report_type # Passing ke service
         )
         return result
@@ -59,7 +59,7 @@ def edit_single_transaction(
 
     try:
         service.edit_transaction(
-            id_dept=userNow.id_dept, 
+            id_dept=userNow.departments_id, 
             id_fact=id_fact, 
             new_value=payload.new_value, 
             manager_nik=userNow.nik

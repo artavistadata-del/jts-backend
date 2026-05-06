@@ -5,7 +5,7 @@ from src.workers.cleaning.base_cleaning_service import BaseCleaningService
 from src.workers.cleanser.finance import process_finance_excel
 from src.core.database import engine 
 from src.modules.departments.registry import get_dept_config
-from src.models.models import HistoryUpload, StatusEnum, FactFinance
+from src.models.models import History, StatusEnum, FactFinance
 
 class FinanceService(BaseCleaningService):
     def __init__(self, db_session):
@@ -24,7 +24,7 @@ class FinanceService(BaseCleaningService):
     # ===========================================================================================
     def execute_analyze(self, history_id: int, filename: str):
         # Ambil record SATU KALI di awal
-        record = self.db.query(HistoryUpload).filter(HistoryUpload.id_history_upload == history_id).first()
+        record = self.db.query(History).filter(History.id == history_id).first()
         if not record:
             raise ValueError(f"Data history upload dengan ID {history_id} tidak ditemukan.")
 
@@ -163,7 +163,7 @@ class FinanceService(BaseCleaningService):
     # POSTGRES COMMIT
     # =====================================================================================
     def execute_commit(self, history_id: int, filename: str):
-        record = self.db.query(HistoryUpload).get(history_id)
+        record = self.db.query(History).get(history_id)
         config = get_dept_config(self.id_dept)
         
         stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
@@ -174,7 +174,7 @@ class FinanceService(BaseCleaningService):
             columns = [
                 "bulan", "account_name", "report_type", "actual_budget", 
                 "idx_category", "category", "idx_sub_category", "sub_category", 
-                "sub_sub_category", "value", "id_history"
+                "sub_sub_category", "value", "history_id"
             ]
             
             cols_str = ", ".join(columns)
@@ -208,7 +208,7 @@ class FinanceService(BaseCleaningService):
         stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
         try:
             self.db.execute(text(f"DROP TABLE IF EXISTS {stg_table}"))
-            record = self.db.query(HistoryUpload).filter(HistoryUpload.id_history_upload == history_id).first()
+            record = self.db.query(History).filter(History.id == history_id).first()
             if record:
                 record.status = StatusEnum.CANCELLED
             self.db.commit()

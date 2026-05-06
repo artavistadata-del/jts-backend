@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, defer
-from src.models.models import HistoryUpload, RoleEnum, Users
+from src.models.models import History, RoleEnum, Users
 
 class HistoryRepository :
     def __init__(self, db : Session):
@@ -9,18 +9,18 @@ class HistoryRepository :
     # GET HISTORY BY ID
     # ==========================================
     def get_history_by_id_hist(self, id_hist : int) :
-        return self.db.query(HistoryUpload).filter(HistoryUpload.id_history_upload == id_hist).first()
+        return self.db.query(History).filter(History.id == id_hist).first()
     
     # ==========================================
     # GET HISTORY BY UUID
     # ==========================================
     def get_history_by_uuid_hist(self, uuid_hist : str) :
-        return self.db.query(HistoryUpload).filter(HistoryUpload.public_id == uuid_hist).first()
+        return self.db.query(History).filter(History.public_id == uuid_hist).first()
 
     # ==========================================
     # INSERT HISTORY -> Upload File [ USERS ACCESS ]
     # ==========================================
-    def insert_history(self, history : HistoryUpload) :
+    def insert_history(self, history : History) :
         self.db.add(history)
         self.db.commit()
         self.db.refresh(history)
@@ -29,7 +29,7 @@ class HistoryRepository :
     # ==========================================
     # UPDATE HISTORY -> Approve/Reject [ ADMIN ACCESS ]
     # ==========================================
-    def update_history(self, history: HistoryUpload):
+    def update_history(self, history: History):
         self.db.commit()
         self.db.refresh(history)
         return history
@@ -39,29 +39,29 @@ class HistoryRepository :
     # ==========================================
     def get_history_by_access(self, id_users : int, role_name: str, id_dept: int, skip: int = 0, limit: int = 10):
         query = self.db.query(
-            HistoryUpload, 
+            History, 
             Users.nik, 
-            Users.nama
+            Users.name
         ).join(
-            Users, HistoryUpload.id_users == Users.idusers
+            Users, History.users_id == Users.id
         ).options(
-            # defer(HistoryUpload.analysis_result),
-            defer(HistoryUpload.file_name_storage)
+            # defer(History.analysis_result),
+            defer(History.file_name_storage)
         )
         
         # 2. Terapkan filter berdasarkan Role
         if role_name == RoleEnum.MANAGER or role_name == RoleEnum.DIREKTUR:
             # Manager/Direktur: Lihat semua data di departemennya
-            query = query.filter(HistoryUpload.id_dept == id_dept)
+            query = query.filter(History.departments_id == id_dept)
                      
         else:
             # Staff (Default): Hanya melihat transaksinya sendiri
-            query = query.filter(HistoryUpload.id_users == id_users)
+            query = query.filter(History.users_id == id_users)
 
         # 3. Hitung total dan eksekusi pagination
         total_count = query.count()
         results = (
-            query.order_by(HistoryUpload.id_history_upload.desc())
+            query.order_by(History.id.desc())
             .offset(skip)
             .limit(limit)
             .all()
@@ -70,22 +70,24 @@ class HistoryRepository :
         # 4. FORMAT ULANG DATA AGAR AMAN DI-JSON-KAN OLEH FASTAPI
         formatted_results = []
         for row in results:
-            history_obj = row[0] # Objek HistoryUpload
+            history_obj = row[0] # Objek History
             nik_user = row[1]    # Users.nik
             nama_user = row[2]   # Users.nama
             
             # Ekstrak manual ke dictionary bersih
             hist_dict = {
-                "public_id": history_obj.public_id,
-                "id_users": history_obj.id_users,
-                "id_roles": history_obj.id_roles,
-                "id_dept": history_obj.id_dept,
+                "id": history_obj.public_id,
+                # "users_id": history_obj.users_id,
+                # "roles_id": history_obj.roles_id,
+                # "departments_id": history_obj.departments_id,
                 "file_name": history_obj.file_name,
                 "notes": history_obj.notes,
                 "time_stamp": history_obj.time_stamp.isoformat() if history_obj.time_stamp else None,
                 "status": history_obj.status.value if history_obj.status else None,
-                "nik": nik_user,
-                "nama_user": nama_user,
+                "users" : {
+                    "nik": nik_user,
+                    "name": nama_user,
+                },
                 "analysis_result" : history_obj.analysis_result
             }
             formatted_results.append(hist_dict)
@@ -98,5 +100,5 @@ class HistoryRepository :
     # ==========================================
     def delete_related_facts(self, model_class, id_history: int):
         """Menghapus semua baris transaksi di tabel fact yang terkait dengan history ini"""
-        self.db.query(model_class).filter(model_class.id_history == id_history).delete()
+        self.db.query(model_class).filter(model_class.id == id_history).delete()
         self.db.commit()

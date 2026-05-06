@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
 from src.infra.upload.client import minio_client
 from src.core.database import engine 
-from src.models.models import HistoryUpload, StatusEnum
+from src.models.models import History, StatusEnum
 from src.modules.departments.registry import get_dept_config 
 
 class BaseCleaningService:

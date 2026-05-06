@@ -1,5 +1,4 @@
 from typing import Optional
-
 from pydantic import BaseModel, Field
 from src.modules.departments.schema import DepartmentEnum
 from src.modules.roles.schema import RolesEnum
@@ -9,11 +8,11 @@ from src.modules.roles.schema import RolesEnum
 # INPUT
 # ==========================================================================
 class UserSignUp(BaseModel) :
-    nama : str = Field(..., max_length=255)
+    name : str = Field(..., max_length=255)
     nik : str = Field(..., min_length=16, max_length=16)
     password : str = Field(..., min_length=8,max_length=72)
-    id_role : str
-    id_dept : str
+    roles_id : str
+    departments_id : str
 
 class UserSignIn(BaseModel):
     nik: str = Field(..., min_length=16, max_length=16)
@@ -21,10 +20,10 @@ class UserSignIn(BaseModel):
 
 
 class UserUpdateSchema(BaseModel):
-    nama: Optional[str] = Field(None, min_length=8)
+    name: Optional[str] = Field(None, min_length=8)
     password: Optional[str] = Field(None, min_length=8)
-    id_role: Optional[str] = None
-    id_dept: Optional[str] = None
+    roles_id: Optional[str] = None
+    departments_id : Optional[str] = None
 
 
 
@@ -38,22 +37,22 @@ class UserUpdateSchema(BaseModel):
 # OUTPUT
 # ==========================================================================
 class RoleOut(BaseModel):
-    id_roles: int
-    role_name: str = Field(validation_alias="role")
+    id: str = Field(validation_alias="public_id")
+    name: str 
 
     class Config:
         from_attributes = True
 
 class DeptOut(BaseModel):
-    id_dept: int
-    name_dept: str
+    id: str = Field(validation_alias="public_id")
+    name: str
 
     class Config:
         from_attributes = True
 
 class UserOut(BaseModel):
-    id_user: str = Field(validation_alias="public_id")
-    nama : str
+    id: str = Field(validation_alias="public_id")
+    name : str
     nik : str
     is_active : bool
     departments : DeptOut

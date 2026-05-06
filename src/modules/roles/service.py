@@ -35,8 +35,8 @@ class RoleService :
         hasil_format = []
         for r in roles_find:
             hasil_format.append({
-                "id_roles": r.public_id,
-                "role_name": r.role
+                "id": r.public_id,
+                "name": r.name
             })
         
         return {

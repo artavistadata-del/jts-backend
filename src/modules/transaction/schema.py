@@ -9,19 +9,18 @@ from pydantic import BaseModel, field_serializer
 from datetime import datetime
 from zoneinfo import ZoneInfo # Modul bawaan Python 3.9+
 
+
+class HistoryUsersOut(BaseModel) :
+    name : str
+    nik : str
+
 class TransactionItemResponse(BaseModel):
-    # id_history_upload: int
-    id_history: str = Field(validation_alias="public_id")
-    # id_users: int
-    # id_roles : int
-    # id_dept : int
+    id: str
     file_name: str
     notes: str | None = None
     time_stamp: datetime # Ambil tipe data aslinya
     status: str
-    nik : str
-    nama_user : str
-    # analysis_result : dict | None
+    users : HistoryUsersOut
 
 
     # Decorator ini akan mencegat data time_stamp sebelum jadi JSON

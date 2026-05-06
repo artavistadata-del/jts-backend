@@ -12,13 +12,13 @@ class DepartmentRepository :
     # GET DEPT BY DEPT [ADMIN ACCESS ]
     # ==========================================
     def get_dept_by_dept(self, dept_name : str) :
-        return self.db.query(Departments.id_dept).filter(Departments.name_dept == dept_name).first()
+        return self.db.query(Departments.id).filter(Departments.name == dept_name).first()
     
     # ==========================================
     # GET DEPT BY ID [ADMIN ACCESS ]
     # ==========================================
     def get_dept_by_id(self, dept_id : int) :
-        return self.db.query(Departments.name_dept).filter(Departments.id_dept == dept_id).first()
+        return self.db.query(Departments.name).filter(Departments.id == dept_id).first()
     
     # ==========================================
     # GET DEPT BY UUID [ADMIN ACCESS ]
@@ -48,12 +48,12 @@ class DepartmentRepository :
     def get_staff_count_per_dept(self):
         results = (
             self.db.query(
-                Departments.name_dept.label("department"),
-                func.count(Users.idusers).label("jumlah_staff")
+                Departments.name.label("department"),
+                func.count(Users.id).label("jumlah_staff")
             )
-            .outerjoin(Users, Departments.id_dept == Users.id_dept)
-            .group_by(Departments.id_dept, Departments.name_dept)
-            .order_by(Departments.name_dept.asc())
+            .outerjoin(Users, Departments.id == Users.departments_id)
+            .group_by(Departments.id, Departments.name)
+            .order_by(Departments.name.asc())
             .all()
         )
         return results

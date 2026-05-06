@@ -93,7 +93,7 @@ def process_finance_excel(raw_bytes: io.BytesIO, history_id: int) -> pl.DataFram
     df_final.columns = new_columns
 
     df_final = df_final.with_columns([
-        pl.lit(history_id).alias("id_history")
+        pl.lit(history_id).alias("history_id")
     ])
 
     # =========================================================================
@@ -108,7 +108,7 @@ def process_finance_excel(raw_bytes: io.BytesIO, history_id: int) -> pl.DataFram
     # Menjumlahkan nilai jika ada baris duplikat di Excel
     df_final = df_final.group_by(unique_subset).agg([
         pl.col("value").sum(),
-        pl.col("id_history").first()
+        pl.col("history_id").first()
     ])
 
     return df_final

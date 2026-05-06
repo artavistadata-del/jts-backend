@@ -11,5 +11,5 @@ class DepartmentEnum(str, Enum) :
     ACCOUNTING = 'ACCOUNTING'
 
 class DepartmentsInsertSchema(BaseModel):
-    dept_name : str
+    name : str
 

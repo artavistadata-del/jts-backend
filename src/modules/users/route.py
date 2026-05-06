@@ -103,7 +103,7 @@ def update_user(
     userNow: Users = Depends(get_current_user)
 ):
 
-    if userNow.roles.role != "ADMIN" and userNow.public_id != user_id:
+    if userNow.roles.name != "ADMIN" and userNow.public_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Kamu tidak punya akses untuk mengubah data orang lain!"
@@ -114,20 +114,21 @@ def update_user(
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
 
     # Catatan: Sesuaikan target_user.id_roles dengan nama atribut di model Users kamu
-    final_id_role = updateData.id_role if userNow.roles.role == "ADMIN" else target_user.id_roles
-    final_id_dept = updateData.id_dept if userNow.roles.role == "ADMIN" else target_user.id_dept
+    final_name = updateData.name if userNow.roles.name == "ADMIN" else target_user.name
+    final_id_role = updateData.roles_id if userNow.roles.name == "ADMIN" else target_user.roles.public_id
+    final_id_dept = updateData.departments_id if userNow.roles.name == "ADMIN" else target_user.departments.public_id
 
     result = userService.update_user(
         nik=target_user.nik,
         password=updateData.password,
-        nama=updateData.nama,
+        name=final_name,
         id_role=final_id_role,
         id_dept=final_id_dept,
     )
 
     return {
         "status": "Berhasil",
-        "message": f"Berhasil Update Data {target_user.nama}"
+        "message": f"Berhasil Update Data {target_user.name}"
     }
 
 
@@ -159,7 +160,7 @@ def reactivate_user_route(
     return {
         "status": "berhasil",
         "message": f"Akun dengan NIK {result['nik']} berhasil diaktifkan kembali",
-        "data": result
+        # "data": result
     }
 
 

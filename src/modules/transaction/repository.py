@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.models.models import HistoryUpload, StatusEnum
+from src.models.models import History, StatusEnum
 
 class TransactionRepository:
     def __init__(self, db: Session):
@@ -9,14 +9,14 @@ class TransactionRepository:
     # GET transaction [MANAGER & USER ACCESS ]
     # ==========================================
     def get_paginated_transactions(self, model_class, skip: int, limit: int, user_id_filter: int = None, report_type: str = None):
-        # 1. Join tabel Fact (contoh: FactFinance) dengan HistoryUpload
+        # 1. Join tabel Fact (contoh: FactFinance) dengan History
         query = self.db.query(model_class).join(
-            HistoryUpload, model_class.id_history == HistoryUpload.id_history_upload
+            History, model_class.history_id == History.id
         )
 
         # 2. Jika ada nik_filter (berarti dia Staff), saring datanya
         if user_id_filter:
-            query = query.filter(HistoryUpload.id_users == user_id_filter)
+            query = query.filter(History.users_id == user_id_filter)
 
         # 3. Saring berdasarkan report_type (IS / BS) jika parameter dikirim
         # Gunakan hasattr untuk mencegah error pada model departemen lain yang mungkin tidak punya kolom report_type

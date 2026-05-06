@@ -13,7 +13,7 @@ class UserRepository :
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
-        return "User Berhasil Ditambahkan"
+        return f"{user.name} Berhasil Ditambahkan"
     
     # ==========================================
     # GET USER BY NIK
@@ -31,7 +31,7 @@ class UserRepository :
     # GET USER BY ID
     # ==========================================
     def get_user_by_id(self, id : int) :
-        return self.db.query(Users).filter(Users.idusers == id).first()
+        return self.db.query(Users).filter(Users.id == id).first()
     
     # ==========================================
     # GET ALL USER [ ADMIN ACCESS ]
@@ -63,15 +63,6 @@ class UserRepository :
             return True
         return False
         
-
-    # def hard_delete_user(self, nik: str):
-    #     user = self.select_user(nik)
-    #     if user:
-    #         self.db.delete(user)
-    #         self.db.commit()
-    #         return True
-    #     return False
-    
     # ==========================================
     # UPDATE USER [ ADMIN & USER ACCESS ]
     # ==========================================
