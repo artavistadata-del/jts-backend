@@ -16,13 +16,17 @@ class HistoryService :
     # ADD HISTORY
     # ==========================================
     def add_history(self, history_schema : HistoryUploadSchema):
+
+        final_status = history_schema.status if history_schema.status is not None else StatusEnum.ANALYZING
+
         history_models = HistoryUploadModels(
-            users_id = history_schema.users_id,
-            roles_id = history_schema.roles_id,
-            departments_id = history_schema.departments_id,
+            user_id = history_schema.user_id,
+            role_id = history_schema.role_id,
+            department_id = history_schema.department_id,
             file_name = history_schema.file_name,
             # time_stamp = history_schema.time_stamp,
-            file_name_storage = history_schema.file_name_storage
+            file_name_storage = history_schema.file_name_storage,
+            status=final_status
     
         )
         return self.history_repo.insert_history(history_models)
@@ -39,8 +43,8 @@ class HistoryService :
         
         # Ekstrak data yang dibutuhkan dari userNow
         id_user = userNow.id
-        role_name = userNow.roles.name.value if userNow.roles else "STAFF"
-        id_dept = userNow.departments_id
+        role_name = userNow.role.name.value if userNow.role else "STAFF"
+        id_dept = userNow.department_id
 
         # Panggil method repository yang baru
         items, total = self.history_repo.get_history_by_access(
@@ -84,7 +88,7 @@ class HistoryService :
         
         self.history_repo.update_history(record)
         
-        commit_upsert_task.delay(history_id, record.file_name, record.departments_id, action.value)
+        commit_upsert_task.delay(history_id, record.file_name, record.department_id, action.value)
 
         return True
     
@@ -92,7 +96,7 @@ class HistoryService :
     # ==========================================
     # PREVIEW HISTORY -> APPROVE/REJECT [ ADMIN ]
     # ==========================================
-    def review_history(self, history_id: str, action: StatusEnum, notes: str, manager_id_dept: int):
+    def review_history(self, history_id: str, action: StatusEnum, note: str, manager_id_dept: int):
 
         record = self.history_repo.get_history_by_uuid_hist(history_id)
         
@@ -100,7 +104,7 @@ class HistoryService :
             raise HTTPException(status_code=404, detail="Data History tidak ditemukan.")
 
         # 2. Keamanan: Cegah Manager mereview data departemen lain
-        if record.departments_id != manager_id_dept:
+        if record.department_id != manager_id_dept:
             raise HTTPException(status_code=403, detail="Anda tidak berhak me-review file dari departemen lain.")
 
         # 3. Validasi status harus PENDING
@@ -108,7 +112,7 @@ class HistoryService :
             raise HTTPException(status_code=400, detail=f"File berstatus {record.status.value}, tidak bisa direview.")
 
         # 4. Ambil konfigurasi model (FactFinance/HR/dll) dari registry
-        config = get_dept_config(record.departments_id)
+        config = get_dept_config(record.department_id)
         target_model = config["model"]
 
         # 5. EKSEKUSI REJECT ATAU APPROVE
@@ -118,7 +122,7 @@ class HistoryService :
             
             # Update status history & catatan
             record.status = StatusEnum.REJECTED
-            record.notes = notes
+            record.note = note
             self.history_repo.update_history(record)
             
             return "File ditolak. Data transaksi berhasil dihapus dari sistem."
@@ -126,7 +130,7 @@ class HistoryService :
         elif action == StatusEnum.APPROVED:
             # Update status history & catatan
             record.status = StatusEnum.APPROVED
-            record.notes = notes
+            record.note = note
             self.history_repo.update_history(record)
 
             # Eksekusi Refresh Materialized View Power BI

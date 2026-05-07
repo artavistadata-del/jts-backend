@@ -42,8 +42,8 @@ class UserRepository :
         users = (
             self.db.query(Users)
             .options(
-                joinedload(Users.roles),
-                joinedload(Users.departments)
+                joinedload(Users.role),
+                joinedload(Users.department)
             )
             .offset(skip)
             .limit(limit)

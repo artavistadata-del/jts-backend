@@ -51,7 +51,7 @@ class DepartmentRepository :
                 Departments.name.label("department"),
                 func.count(Users.id).label("jumlah_staff")
             )
-            .outerjoin(Users, Departments.id == Users.departments_id)
+            .outerjoin(Users, Departments.id == Users.department_id)
             .group_by(Departments.id, Departments.name)
             .order_by(Departments.name.asc())
             .all()

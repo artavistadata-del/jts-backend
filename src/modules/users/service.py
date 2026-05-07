@@ -47,12 +47,12 @@ class UserService :
 
         hashed_password = get_password_hash(userSchema.password)
 
-        roleFind = self.role_service.display_role_by_uuid(userSchema.roles_id)
+        roleFind = self.role_service.display_role_by_uuid(userSchema.role_id)
 
         if not roleFind :
             raise HTTPException(404, 'Role tidak terdaftar')
         
-        deptFind = self.dept_service.display_dept_by_uuid(userSchema.departments_id)
+        deptFind = self.dept_service.display_dept_by_uuid(userSchema.department_id)
 
         if not deptFind :
             raise HTTPException(404, 'Department tidak terdaftar')
@@ -60,8 +60,8 @@ class UserService :
         userModels = UserModels(
             nik = userSchema.nik,
             password = hashed_password,
-            roles_id = roleFind.id,
-            departments_id = deptFind.id,
+            role_id = roleFind.id,
+            department_id = deptFind.id,
             name = userSchema.name
         )
         return self.user_repo.insert_user(userModels)
@@ -86,13 +86,13 @@ class UserService :
                 "nik": user.nik,
                 "name" : user.name,
                 "is_active": user.is_active,
-                "roles": {
-                    "id": user.roles.public_id,
-                    "name": user.roles.name.value if user.roles and user.roles.name else None 
+                "role": {
+                    "id": user.role.public_id,
+                    "name": user.role.name.value if user.role and user.role.name else None 
                 },
                 "department": {
-                    "id": user.departments.public_id,
-                    "name": user.departments.name if user.departments else None
+                    "id": user.department.public_id,
+                    "name": user.department.name if user.department else None
                 }
             })
 
@@ -143,13 +143,13 @@ class UserService :
             role_find = self.role_service.display_role_by_uuid(id_role)
             if not role_find:
                 raise HTTPException(404, "Role tidak ditemukan")
-            user.roles_id = role_find.id
+            user.role_id = role_find.id
 
         if id_dept:
             dept_find = self.dept_service.display_dept_by_uuid(id_dept)
             if not dept_find:
                 raise HTTPException(404, "Department tidak ditemukan")
-            user.departments_id = dept_find.id
+            user.department_id = dept_find.id
         if name :
             user.name = name
         print(user.name)

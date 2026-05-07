@@ -29,10 +29,10 @@ def get_department_transactions(
 ):
     try:
         result = service.list_transactions(
-            id_dept=userNow.departments_id, 
+            id_dept=userNow.department_id, 
             page=page, 
             size=limit,
-            user_role=userNow.roles.name,
+            user_role=userNow.role.name,
             user_id=userNow.id,
             report_type=report_type # Passing ke service
         )
@@ -54,12 +54,12 @@ def edit_single_transaction(
     service: TransactionService = Depends(get_transaction_service)
 ):
     # 1. Kunci Keamanan: Hanya Manager yang bisa hit endpoint ini
-    if userNow.roles.role != RoleEnum.MANAGER:
+    if userNow.role.role != RoleEnum.MANAGER:
         raise HTTPException(status_code=403, detail="Hanya Manager yang boleh koreksi data.")
 
     try:
         service.edit_transaction(
-            id_dept=userNow.departments_id, 
+            id_dept=userNow.department_id, 
             id_fact=id_fact, 
             new_value=payload.new_value, 
             manager_nik=userNow.nik

@@ -156,7 +156,7 @@ class FinanceService(BaseCleaningService):
             # Menangkap error sistem database
             self.db.rollback()
             record.status = StatusEnum.FAILED
-            record.notes = "Terjadi kesalahan sistem saat memproses data."
+            record.note = "Terjadi kesalahan sistem saat memproses data."
             self.db.commit()
             raise e
     # ======================================================================================

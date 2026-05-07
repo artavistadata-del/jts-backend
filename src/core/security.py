@@ -86,7 +86,7 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: Users = Depends(get_current_user)):
-        user_role = user.roles.name.value if user.roles and user.roles.name else None
+        user_role = user.role.name.value if user.role and user.role.name else None
         
         if user_role not in self.allowed_roles:
             raise HTTPException(

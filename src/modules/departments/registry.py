@@ -31,6 +31,31 @@ DEPT_CONFIG = {
     },
 
 
+    2: { # 2 = ID Departemen Purchasing
+        "name": "finance",
+        "model": FactFinance,
+        "table_name": "oltp_main.fact_finance", 
+        "cleanser": process_finance_excel,
+        "unique_keys": [
+                "bulan", 
+                "account_name", 
+                "report_type", 
+                "idx_category", 
+                "category", 
+                "idx_sub_category", 
+                "sub_category", 
+                "sub_sub_category"
+            ],
+        "constraint_name": "uix_finance_data",
+        "dept_name": "Finance",
+        "mv_refresh_query" : "REFRESH MATERIALIZED VIEW CONCURRENTLY olap_finance.mv_finance_detail;",
+        "powerbi": {
+            "report_id": "b5284068-cb63-41c9-ad98-d00aac2019f8",
+            "dataset_id": "97c8dd60-c7c0-43ce-8fa5-d7f36a5cc447",
+        }
+    },
+
+
 
 
     # CONTOH JIKA BESOK ADA DEPARTEMEN HR (ID 2):

@@ -43,7 +43,7 @@ class HistoryRepository :
             Users.nik, 
             Users.name
         ).join(
-            Users, History.users_id == Users.id
+            Users, History.user_id == Users.id
         ).options(
             # defer(History.analysis_result),
             defer(History.file_name_storage)
@@ -52,11 +52,11 @@ class HistoryRepository :
         # 2. Terapkan filter berdasarkan Role
         if role_name == RoleEnum.MANAGER or role_name == RoleEnum.DIREKTUR:
             # Manager/Direktur: Lihat semua data di departemennya
-            query = query.filter(History.departments_id == id_dept)
+            query = query.filter(History.department_id == id_dept)
                      
         else:
             # Staff (Default): Hanya melihat transaksinya sendiri
-            query = query.filter(History.users_id == id_users)
+            query = query.filter(History.user_id == id_users)
 
         # 3. Hitung total dan eksekusi pagination
         total_count = query.count()
@@ -77,14 +77,14 @@ class HistoryRepository :
             # Ekstrak manual ke dictionary bersih
             hist_dict = {
                 "id": history_obj.public_id,
-                # "users_id": history_obj.users_id,
-                # "roles_id": history_obj.roles_id,
-                # "departments_id": history_obj.departments_id,
+                # "user_id": history_obj.user_id,
+                # "role_id": history_obj.role_id,
+                # "department_id": history_obj.department_id,
                 "file_name": history_obj.file_name,
-                "notes": history_obj.notes,
+                "notes": history_obj.note,
                 "time_stamp": history_obj.time_stamp.isoformat() if history_obj.time_stamp else None,
                 "status": history_obj.status.value if history_obj.status else None,
-                "users" : {
+                "user" : {
                     "nik": nik_user,
                     "name": nama_user,
                 },

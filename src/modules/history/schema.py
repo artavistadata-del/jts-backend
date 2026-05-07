@@ -5,14 +5,15 @@ from pydantic import BaseModel, Field
 from src.models.models import StatusEnum
 
 class HistoryUpload(BaseModel) :
-    users_id : int
-    departments_id: int
+    user_id : int
+    department_id: int
     file_name: str
     time_stamp: date
-    roles_id : int
+    role_id : int
     file_name_storage : str
+    status: StatusEnum = StatusEnum.ANALYZING
 
 
 class ActionHistoryPayload(BaseModel):
     action: StatusEnum
-    notes: Optional[str] = None
+    note: Optional[str] = None

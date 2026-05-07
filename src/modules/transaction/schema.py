@@ -17,10 +17,10 @@ class HistoryUsersOut(BaseModel) :
 class TransactionItemResponse(BaseModel):
     id: str
     file_name: str
-    notes: str | None = None
+    note: str | None = None
     time_stamp: datetime # Ambil tipe data aslinya
     status: str
-    users : HistoryUsersOut
+    user : HistoryUsersOut
 
 
     # Decorator ini akan mencegat data time_stamp sebelum jadi JSON

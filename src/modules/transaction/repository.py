@@ -16,7 +16,7 @@ class TransactionRepository:
 
         # 2. Jika ada nik_filter (berarti dia Staff), saring datanya
         if user_id_filter:
-            query = query.filter(History.users_id == user_id_filter)
+            query = query.filter(History.user_id == user_id_filter)
 
         # 3. Saring berdasarkan report_type (IS / BS) jika parameter dikirim
         # Gunakan hasattr untuk mencegah error pada model departemen lain yang mungkin tidak punya kolom report_type

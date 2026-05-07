@@ -40,15 +40,15 @@ def review_uploaded_file(
     service: HistoryService = Depends(get_history_service)
 ):
     # Kunci Keamanan: Hanya Manager (atau role lebih tinggi) yang bisa hit ini
-    if userNow.roles.name not in [RoleEnum.MANAGER, RoleEnum.DIREKTUR]:
+    if userNow.role.name not in [RoleEnum.MANAGER, RoleEnum.DIREKTUR]:
         raise HTTPException(status_code=403, detail="Akses ditolak. Hanya Manager yang dapat me-review file.")
 
     # Kirim ke service (termasuk id_dept Manager dari token untuk validasi)
     result_message = service.review_history(
         history_id=id_history,
         action=payload.action,
-        notes=payload.notes,
-        manager_id_dept=userNow.departments_id
+        note=payload.note,
+        manager_id_dept=userNow.department_id
     )
     
     return {"status": "success", "message": result_message}

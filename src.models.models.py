@@ -1,7 +1,7 @@
 from typing import Optional
 import datetime
 import enum
-import shortuuid
+
 from sqlalchemy import Boolean, Date, DateTime, Double, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -9,11 +9,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
+
 class RoleEnum(str, enum.Enum):
     STAFF = 'STAFF'
     MANAGER = 'MANAGER'
     DIREKTUR = 'DIREKTUR'
     ADMIN = 'ADMIN'
+
 
 class StatusEnum(str, enum.Enum):
     ANALYZING = 'ANALYZING'
@@ -25,37 +27,38 @@ class StatusEnum(str, enum.Enum):
     FAILED = 'FAILED'
     CANCELLED = 'CANCELLED'
 
+
 class Departments(Base):
     __tablename__ = 'departments'
     __table_args__ = (
         PrimaryKeyConstraint('id', name='departments_pkey'),
+        Index('ix_departments_public_id', 'public_id', unique=True),
         {'schema': 'oltp_main'}
     )
 
     id: Mapped[int] = mapped_column(Integer, Sequence('departments_id_dept_seq', schema='oltp_main'), primary_key=True)
     name: Mapped[Optional[str]] = mapped_column(String(45))
-    
-    # PERBAIKAN DI SINI: Index, Unique, dan Default digabung jadi satu biar rapi
-    public_id: Mapped[Optional[str]] = mapped_column(String(22), unique=True, index=True, default=shortuuid.uuid)
+    public_id: Mapped[Optional[str]] = mapped_column(String(22))
 
     users: Mapped[list['Users']] = relationship('Users', back_populates='department')
     history: Mapped[list['History']] = relationship('History', back_populates='department')
+
 
 class Roles(Base):
     __tablename__ = 'roles'
     __table_args__ = (
         PrimaryKeyConstraint('id', name='roles_pkey'),
+        Index('ix_roles_public_id', 'public_id', unique=True),
         {'schema': 'oltp_main'}
     )
 
     id: Mapped[int] = mapped_column(Integer, Sequence('roles_id_roles_seq', schema='oltp_main'), primary_key=True)
     name: Mapped[Optional[RoleEnum]] = mapped_column(Enum(RoleEnum, values_callable=lambda cls: [member.value for member in cls], name='role_enum', schema='oltp_main'))
-    
-    # PERBAIKAN DI SINI
-    public_id: Mapped[Optional[str]] = mapped_column(String(22), unique=True, index=True, default=shortuuid.uuid)
+    public_id: Mapped[Optional[str]] = mapped_column(String(22))
 
     users: Mapped[list['Users']] = relationship('Users', back_populates='role')
     history: Mapped[list['History']] = relationship('History', back_populates='role')
+
 
 class Users(Base):
     __tablename__ = 'users'
@@ -76,13 +79,12 @@ class Users(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
     password: Mapped[Optional[str]] = mapped_column(String(255))
-    
-    # PERBAIKAN DI SINI
-    public_id: Mapped[Optional[str]] = mapped_column(String(22), unique=True, index=True, default=shortuuid.uuid)
+    public_id: Mapped[Optional[str]] = mapped_column(String(22))
 
     department: Mapped['Departments'] = relationship('Departments', back_populates='users')
     role: Mapped['Roles'] = relationship('Roles', back_populates='users')
     history: Mapped[list['History']] = relationship('History', back_populates='user')
+
 
 class History(Base):
     __tablename__ = 'history'
@@ -91,6 +93,8 @@ class History(Base):
         ForeignKeyConstraint(['role_id'], ['oltp_main.roles.id'], name='history_upload_id_roles_fkey'),
         ForeignKeyConstraint(['user_id'], ['oltp_main.users.id'], name='history_upload_id_users_fkey'),
         PrimaryKeyConstraint('id', name='history_upload_pkey'),
+        UniqueConstraint('public_id', name='history_public_id_unique'),
+        Index('ix_history_upload_public_id', 'public_id'),
         Index('ix_oltp_main_history_upload_id_dept', 'department_id'),
         Index('ix_oltp_main_history_upload_id_roles', 'role_id'),
         Index('ix_oltp_main_history_upload_id_users', 'user_id'),
@@ -106,15 +110,14 @@ class History(Base):
     status: Mapped[StatusEnum] = mapped_column(Enum(StatusEnum, values_callable=lambda cls: [member.value for member in cls], name='status_enum', schema='oltp_main'), nullable=False)
     analysis_result: Mapped[Optional[dict]] = mapped_column(JSONB)
     file_name_storage: Mapped[Optional[str]] = mapped_column(String(255))
-    note: Mapped[Optional[str]] = mapped_column(Text)
-    
-    # PERBAIKAN DI SINI
-    public_id: Mapped[Optional[str]] = mapped_column(String(22), unique=True, index=True, default=shortuuid.uuid)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    public_id: Mapped[Optional[str]] = mapped_column(String(22))
 
     department: Mapped['Departments'] = relationship('Departments', back_populates='history')
     role: Mapped['Roles'] = relationship('Roles', back_populates='history')
     user: Mapped['Users'] = relationship('Users', back_populates='history')
     fact_finance: Mapped[list['FactFinance']] = relationship('FactFinance', back_populates='history')
+
 
 class FactFinance(Base):
     __tablename__ = 'fact_finance'

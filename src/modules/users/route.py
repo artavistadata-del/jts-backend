@@ -103,7 +103,7 @@ def update_user(
     userNow: Users = Depends(get_current_user)
 ):
 
-    if userNow.roles.name != "ADMIN" and userNow.public_id != user_id:
+    if userNow.role.name != "ADMIN" and userNow.public_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Kamu tidak punya akses untuk mengubah data orang lain!"
@@ -114,9 +114,9 @@ def update_user(
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
 
     # Catatan: Sesuaikan target_user.id_roles dengan nama atribut di model Users kamu
-    final_name = updateData.name if userNow.roles.name == "ADMIN" else target_user.name
-    final_id_role = updateData.roles_id if userNow.roles.name == "ADMIN" else target_user.roles.public_id
-    final_id_dept = updateData.departments_id if userNow.roles.name == "ADMIN" else target_user.departments.public_id
+    final_name = updateData.name if userNow.role.name == "ADMIN" else target_user.name
+    final_id_role = updateData.role_id if userNow.role.name == "ADMIN" else target_user.role.public_id
+    final_id_dept = updateData.department_id if userNow.role.name == "ADMIN" else target_user.department.public_id
 
     result = userService.update_user(
         nik=target_user.nik,

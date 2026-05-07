@@ -35,7 +35,7 @@ async def get_aad_token():
 async def get_powerbi_token(current_user: Users = Depends(get_current_user)):
     
     try:
-        pbi_config = get_powerbi_config(current_user.id_dept)
+        pbi_config = get_powerbi_config(current_user.department_id)
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     

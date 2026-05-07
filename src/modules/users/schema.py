@@ -11,8 +11,8 @@ class UserSignUp(BaseModel) :
     name : str = Field(..., max_length=255)
     nik : str = Field(..., min_length=16, max_length=16)
     password : str = Field(..., min_length=8,max_length=72)
-    roles_id : str
-    departments_id : str
+    role_id : str
+    department_id : str
 
 class UserSignIn(BaseModel):
     nik: str = Field(..., min_length=16, max_length=16)
@@ -22,8 +22,8 @@ class UserSignIn(BaseModel):
 class UserUpdateSchema(BaseModel):
     name: Optional[str] = Field(None, min_length=8)
     password: Optional[str] = Field(None, min_length=8)
-    roles_id: Optional[str] = None
-    departments_id : Optional[str] = None
+    role_id: Optional[str] = None
+    department_id : Optional[str] = None
 
 
 
@@ -55,8 +55,8 @@ class UserOut(BaseModel):
     name : str
     nik : str
     is_active : bool
-    departments : DeptOut
-    roles : RoleOut
+    department : DeptOut
+    role : RoleOut
     
     class Config:
         from_attributes = True
