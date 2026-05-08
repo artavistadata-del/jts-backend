@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import desc, func, asc
 from sqlalchemy.orm import Session
 from src.models.models import Departments, Users
 
@@ -29,8 +29,15 @@ class DepartmentRepository :
     # ==========================================
     # GET ALL DEPT [ADMIN ACCESS ]
     # ==========================================
-    def get_all_dept(self) :
-        return self.db.query(Departments).all()
+    def get_all_dept(self, sort_by: str = "name", sort_order: str = "asc"):
+        sort_column = getattr(Departments, sort_by, Departments.name)
+        
+        if sort_order.lower() == "desc":
+            order_expression = desc(sort_column)
+        else:
+            order_expression = asc(sort_column)
+            
+        return self.db.query(Departments).order_by(order_expression).all()
     
     # ==========================================
     # INSERT DEPT [ADMIN ACCESS ]
@@ -57,4 +64,22 @@ class DepartmentRepository :
             .all()
         )
         return results
-    
+
+
+    # ==========================================
+    # UPDATE DEPARTMENTS
+    # ==========================================
+    def update_dept(self, dept : Departments) :
+
+        self.db.commit()
+        self.db.refresh(dept)
+        return f"Data Department {dept.name} Berhasil Diperbarui"
+
+    # ==========================================
+    # DELETE DEPARTMENTS
+    # ==========================================
+    def delete_dept(self, dept : Departments) :
+
+        self.db.delete(dept)
+        self.db.commit()
+        return f"Data Department {dept.name} Berhasil Dihapus"

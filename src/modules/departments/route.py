@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 import shortuuid
 from sqlalchemy.orm import Session
 from src.core.database import get_db
@@ -6,7 +6,7 @@ from src.core.dependencies import get_dept_service
 from src.core.security import RoleChecker, get_current_user
 from src.modules.departments.service import DepartmentService
 from src.models.models import Departments, Roles, Users
-from src.modules.departments.schema import DepartmentsInsertSchema
+from src.modules.departments.schema import DepartmentsInsertSchema, DepartmentsUpdateSchema
 
 
 router = APIRouter(
@@ -20,11 +20,12 @@ allow_admin_only = RoleChecker(["ADMIN"])
 # ==========================================
 @router.get("/")
 def get_all_dept(
-        userNow = Depends(get_current_user),
+        sort_by: str = Query("name", description="Kolom untuk pengurutan data"),
+        sort_order: str = Query("asc", regex="^(asc|desc)$", description="Arah pengurutan (asc/desc)"),
         dept_service : DepartmentService = Depends(get_dept_service),
-        user : Users = Depends(allow_admin_only)
+        # user : Users = Depends(allow_admin_only)
     ):
-    return dept_service.display_all_dept()
+    return dept_service.display_all_dept(sort_by=sort_by, sort_order=sort_order)
 
 # ==========================================
 # GET ADD DEPARTMENT [ADMIN ACCESS]
@@ -56,7 +57,45 @@ def get_dept_summary(
         "message": "Data jumlah staff per departemen berhasil diambil",
         "data": result
     }
+allow_admin_only = RoleChecker(["ADMIN"])
 
+# ==========================================
+# GET summary DEPARTMENT [ADMIN ACCESS ]
+# ==========================================
+@router.put("/{dept_id}", status_code=200)
+def update_dept(
+    dept_id : str,
+    updateDeptSchema : DepartmentsUpdateSchema,
+    userNow : Users = Depends(allow_admin_only),
+    deptService: DepartmentService = Depends(get_dept_service),
+):
+
+    result = deptService.update_dept(dept_id, updateDeptSchema)
+
+    return {
+        "status": "berhasil",
+        "message": result
+    }
+
+# ==========================================
+# DELETE DEPARTMENT [ADMIN ACCESS ]
+# ==========================================
+@router.delete("/{dept_id}", status_code=200)
+def delete_dept(
+    dept_id : str,
+    userNow : Users = Depends(allow_admin_only),
+    deptService: DepartmentService = Depends(get_dept_service),
+):
+
+    result = deptService.delete_dept(dept_id)
+
+    return {
+        "status": "berhasil",
+        "message": result
+    }
+
+
+    
 
 
 # # @router.post("/migrate-uuid-master") # Sesuaikan path router-mu

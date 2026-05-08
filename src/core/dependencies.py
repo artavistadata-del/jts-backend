@@ -32,10 +32,6 @@ def get_hist_repo(db: Session = Depends(get_db)) -> HistoryRepository:
 def get_transaction_repo(db: Session = Depends(get_db)) -> TransactionRepository:
     return TransactionRepository(db)
 
-
-# def get_finance_repo(db: Session = Depends(get_db)) -> FinanceRepository:
-#     return FinanceRepository(db)
-
 def get_role_service(role_repo : RoleRepository = Depends(get_role_repo)):
     return RoleService(role_repo)
 
@@ -49,18 +45,11 @@ def get_user_service(user_repo: UserRepository = Depends(get_user_repo), role_se
 def get_history_service(history_repo : HistoryRepository = Depends(get_hist_repo)):
     return HistoryService(history_repo=history_repo)
 
-
 def get_minio_repo(client : Minio = Depends(get_minio_client)) -> UploadRepository:
     return UploadRepository(client)
 
-# def get_minio_service(client : Minio = Depends(get_minio_client), user : Users = Depends(get_current_user), upload_service : HistoryService = Depends(get_history_service)) -> UploadService:
-#     return UploadService(client, user, upload_service)
-
 def get_minio_service(minio_repo : UploadRepository = Depends(get_minio_repo), history_service : HistoryService = Depends(get_history_service)) -> UploadService:
     return UploadService(minio_repo, history_service)
-
-# def get_finance_service(finance_repo : FinanceRepository = Depends(get_finance_repo)) -> FinanceService:
-#     return FinanceService(finance_repo)
 
 def get_transaction_service(transaction_repo : TransactionRepository = Depends(get_transaction_repo)) -> TransactionService :
     return TransactionService(transaction_repo)

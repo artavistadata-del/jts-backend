@@ -69,7 +69,49 @@ class UserService :
     # ==========================================
     # GET ALL USER [ ADMIN ACCESS ]
     # ==========================================
-    def get_all_user(self, page: int = 1, limit: int = 10):
+    # def get_all_user(self, page: int = 1, limit: int = 10):
+    #     if page < 1:
+    #         page = 1
+    #     if limit < 1:
+    #         limit = 10
+            
+    #     skip = (page - 1) * limit
+        
+    #     total_items, users = self.user_repo.get_all_user_paginated(skip=skip, limit=limit)
+        
+    #     user_list = []
+    #     for user in users:
+    #         user_list.append({
+    #             "id" : user.public_id,
+    #             "nik": user.nik,
+    #             "name" : user.name,
+    #             "is_active": user.is_active,
+    #             "role": {
+    #                 "id": user.role.public_id,
+    #                 "name": user.role.name.value if user.role and user.role.name else None 
+    #             },
+    #             "department": {
+    #                 "id": user.department.public_id,
+    #                 "name": user.department.name if user.department else None
+    #             }
+    #         })
+
+    #     total_pages = math.ceil(total_items / limit) if total_items > 0 else 0
+        
+    #     return {
+    #         "data": user_list,
+    #         "meta": {
+    #             "total_items": total_items,
+    #             "total_pages": total_pages,
+    #             "current_page": page,
+    #             "limit": limit
+    #         }
+    #     }
+    
+    # ==========================
+    # sort by name
+    # ==========================
+    def get_all_user(self, page: int = 1, limit: int = 10, sort_by: str = "name", sort_order: str = "asc"):
         if page < 1:
             page = 1
         if limit < 1:
@@ -77,7 +119,9 @@ class UserService :
             
         skip = (page - 1) * limit
         
-        total_items, users = self.user_repo.get_all_user_paginated(skip=skip, limit=limit)
+        total_items, users = self.user_repo.get_all_user_paginated(
+            skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order
+        )
         
         user_list = []
         for user in users:
@@ -104,7 +148,9 @@ class UserService :
                 "total_items": total_items,
                 "total_pages": total_pages,
                 "current_page": page,
-                "limit": limit
+                "limit": limit,
+                "sort_by": sort_by,       
+                "sort_order": sort_order 
             }
         }
     
@@ -184,3 +230,21 @@ class UserService :
     # ==========================================
     def get_user_by_uuid(self, uuid : str) :
         return self.user_repo.get_user_by_uuid(uuid)
+    
+    # ==========================================
+    # DELETE USER BY UUID [ ADMIN ACCESS ]
+    # ==========================================
+    def delete_user(self, id_user : str):
+        userFind = self.user_repo.get_user_by_uuid(id_user)
+        if not userFind:
+            raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        
+        if userFind.deleted_at:
+            raise HTTPException(status_code=400, detail="User telah dihapus sebelumnya")
+
+        is_deleted = self.user_repo.delete_user(userFind.id)
+        
+        if not is_deleted:
+            raise HTTPException(status_code=500, detail="Gagal menghapus user")
+
+        return {"nik": userFind.nik, "status": "aktif"}

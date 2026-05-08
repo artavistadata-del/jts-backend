@@ -29,7 +29,6 @@ class FinanceService(BaseCleaningService):
             raise ValueError(f"Data history upload dengan ID {history_id} tidak ditemukan.")
 
         try:
-            # 1. Bersihkan Data Excel (Bisa melempar ValueError jika format salah)
             df_excel = self._download_and_clean(history_id, filename, self.id_dept, process_finance_excel)
             
             # Isi null values agar SQL tidak bingung saat JOIN

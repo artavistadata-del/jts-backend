@@ -1,5 +1,8 @@
+from sqlalchemy import update
+
 from src.core.database import celery_app, SessionLocal
 from src.infra.upload.schema import ConfirmUploadInput
+from src.models.models import History, StatusEnum
 from src.workers.cleaning.service_factory import get_cleaning_service
 from celery.utils.log import get_task_logger
 
@@ -9,7 +12,21 @@ logger = get_task_logger(__name__)
 def analyze_excel_task(self, history_id: int, filename: str, id_dept: int):
     db = SessionLocal()
     try:
-        service = get_cleaning_service(id_dept, db)
+        try:
+            service = get_cleaning_service(id_dept, db)
+        except ValueError as ve:
+            error_message = str(ve) 
+            
+            db.execute(
+                update(History)
+                .where(History.id == history_id)
+                .values(
+                    status=StatusEnum.FAILED,
+                    analysis_result={"error": error_message}
+                )
+            )
+            db.commit()
+            return f"Task dihentikan: {error_message}"
         service.execute_analyze(history_id, filename)
         return f"Analysis complete for ID {history_id}"
     
@@ -22,7 +39,6 @@ def analyze_excel_task(self, history_id: int, filename: str, id_dept: int):
     
     except Exception as e:
         logger.error(f"Gagal Analisis ID {history_id}: {str(e)}")
-        # raise self.retry(exc=e, countdown=60) 
         raise e
     finally:
         db.close()

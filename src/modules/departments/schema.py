@@ -13,3 +13,7 @@ class DepartmentEnum(str, Enum) :
 class DepartmentsInsertSchema(BaseModel):
     name : str
 
+
+class DepartmentsUpdateSchema(BaseModel) :
+    name : str
+

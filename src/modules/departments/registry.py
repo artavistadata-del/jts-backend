@@ -3,6 +3,7 @@ from src.models.models import FactFinance
 
 # Import semua fungsi pembersih khusus
 from src.workers.cleanser.finance import process_finance_excel
+from src.workers.cleanser.purchasing import process_purchasing_excel
 # from cleaners.hr_cleanser import process_hr_excel <-- Contoh untuk nanti
 
 DEPT_CONFIG = {
@@ -55,6 +56,20 @@ DEPT_CONFIG = {
         }
     },
 
+     3: {
+        "name": "purchasing",
+        "table_name": None,
+        "cleanser": process_purchasing_excel,
+        "unique_keys": [],
+        "constraint_name": None,
+        "dept_name": "Purchasing",
+        "mv_refresh_query": None,
+        "powerbi": {
+            "report_id": "b5284068-cb63-41c9-ad98-d00aac2019f8",
+            "dataset_id": "97c8dd60-c7c0-43ce-8fa5-d7f36a5cc447",
+        },
+    }
+
 
 
 
@@ -71,7 +86,8 @@ DEPT_CONFIG = {
 
 def get_dept_config(id_dept: int) -> dict:
     if id_dept not in DEPT_CONFIG:
-        raise ValueError(f"Sistem belum mendukung integrasi untuk ID Departemen: {id_dept}")
+        # raise ValueError(f"Sistem belum mendukung integrasi untuk ID Departemen: {id_dept}")
+        raise ValueError(f"Sistem belum mendukung integrasi untuk Departmnet Ini")
     return DEPT_CONFIG[id_dept]
 
 def get_powerbi_config(id_dept: int) -> dict:

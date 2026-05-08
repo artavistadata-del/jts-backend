@@ -58,14 +58,33 @@ def sign_up(userData : UserSchemaSignUp,
 # ==========================================
 # GET ALL USER [ADMIN ACCESS]
 # ==========================================
+# @router.get("/", status_code=200)
+# def get_all_users(
+#     page: int = Query(1, ge=1, description="Halaman yang ingin ditampilkan"),
+#     limit: int = Query(10, ge=1, le=100, description="Jumlah data per halaman"),
+#     userService: UserService = Depends(get_user_service),
+#     userNow: Users = Depends(allow_admin_only) 
+# ):
+#     result = userService.get_all_user(page=page, limit=limit)
+#     return {
+#         "status": "berhasil",
+#         "message": "Data users berhasil diambil",
+#         "data": result["data"],
+#         "meta": result["meta"]
+#     }
+
+
 @router.get("/", status_code=200)
 def get_all_users(
     page: int = Query(1, ge=1, description="Halaman yang ingin ditampilkan"),
     limit: int = Query(10, ge=1, le=100, description="Jumlah data per halaman"),
+    sort_by: str = Query("name", description="Kolom untuk pengurutan data"),
+    sort_order: str = Query("asc", regex="^(asc|desc)$", description="Arah pengurutan (asc/desc)"),
     userService: UserService = Depends(get_user_service),
     userNow: Users = Depends(allow_admin_only) 
 ):
-    result = userService.get_all_user(page=page, limit=limit)
+    # Panggil service dengan parameter tambahan
+    result = userService.get_all_user(page=page, limit=limit, sort_by=sort_by, sort_order=sort_order)
     return {
         "status": "berhasil",
         "message": "Data users berhasil diambil",
@@ -135,7 +154,7 @@ def update_user(
 # ==========================================
 # NON ACTIVE USER [ ADMIN ACCESS ]
 # ==========================================
-@router.delete("/{id_user}", status_code=200)
+@router.patch("/{id_user}/nonactive", status_code=200)
 def nonactive_user(
     id_user : str, 
     userService: UserService = Depends(get_user_service),
@@ -160,6 +179,22 @@ def reactivate_user_route(
     return {
         "status": "berhasil",
         "message": f"Akun dengan NIK {result['nik']} berhasil diaktifkan kembali",
+        # "data": result
+    }
+
+# ==========================================
+# RE ACTIVE USER [ ADMIN ACCESS ]
+# ==========================================
+@router.delete("/{id_user}", status_code=200)
+def delete_user_route(
+    id_user: str, 
+    userService: UserService = Depends(get_user_service),
+    userNow: Users = Depends(allow_admin_only)
+):
+    result = userService.delete_user(id_user)
+    return {
+        "status": "berhasil",
+        "message": f"Akun dengan NIK {result['nik']} berhasil dihapus",
         # "data": result
     }
 
