@@ -11,6 +11,7 @@ fastexcel
 pyarrow==23.0.1
 xlsx2csv
 adbc-driver-postgresql
+pandas
 
 # Task Queue & Broker
 celery==5.3.6

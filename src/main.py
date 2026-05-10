@@ -35,7 +35,7 @@ app.add_middleware(
 
 app.include_router(dept_router.router)
 app.include_router(history_router.router)
-app.include_router(powerbi_router.router)
+# app.include_router(powerbi_router.router)
 app.include_router(transaction_router.router)
 app.include_router(users_router.router)
 app.include_router(roles_router.router)

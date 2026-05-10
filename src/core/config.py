@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     # =========================================
     # AZURE CONFIG
     # =========================================
-    AZURE_TENANT_ID : str
-    AZURE_CLIENT_ID : str
-    AZURE_CLIENT_SECRET : str
+    # AZURE_TENANT_ID : str
+    # AZURE_CLIENT_ID : str
+    # AZURE_CLIENT_SECRET : str
 
     # =========================================
     # JWT CONFIG
@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     # REDIS CELERY CONFIG
     # =========================================
     REDIS_URL_CELERY : str
+
+    # =========================================
+    # SUPER ADMIN ACCESS
+    # =========================================
+    ADMIN_NIK : str
+    ADMIN_PASSWORD : str
+    ADMIN_NAME : str
+    ADMIN_DEPARTMENT_ID : int
+    ADMIN_ROLE_ID : int
 
     
 
