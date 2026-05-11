@@ -64,6 +64,9 @@ async def get_powerbi_token(current_user: Users = Depends(get_current_user)):
         # 3. Opsional: Tambahkan embedUrl ke response JSON jika mau
         # Ini sangat membantu Frontend!
         result = response.json()
+        report_id = pbi_config["report_id"],
+        dataset_id= pbi_config["dataset_id"]
         result["reportId"] = pbi_config["report_id"]
         
         return result
+        # return report_id, dataset_id

@@ -12,7 +12,7 @@ def seed_data():
         print("Memulai proses seeding...")
 
         # 1. Seeding Departments
-        departments_data = ['FINANCE', 'PURCHASING']
+        departments_data = ['FINANCE','MANUFACTURE', 'PURCHASING']
         for dept_name in departments_data:
             existing_dept = db.query(Departments).filter(Departments.name == dept_name).first()
             if not existing_dept:

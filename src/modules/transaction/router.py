@@ -11,7 +11,7 @@ from src.modules.transaction.service import TransactionService
 from src.models.models import Users, RoleEnum
 
 router = APIRouter(
-        prefix="/v1/transaction",
+        prefix="/v1/transactions",
         tags=["Transaction"]
     )
 
@@ -28,13 +28,10 @@ def get_department_transactions(
     service: TransactionService = Depends(get_transaction_service)
 ):
     try:
-        result = service.list_transactions(
-            id_dept=userNow.department_id, 
-            page=page, 
-            size=limit,
-            user_role=userNow.role.name,
-            user_id=userNow.id,
-            report_type=report_type # Passing ke service
+        result = service.get_purchasing_transactions(
+            sheet_number=report_type,
+            skip=page,
+            limit=limit
         )
         return result
     except ValueError as ve:
@@ -42,6 +39,33 @@ def get_department_transactions(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server.{e}")
     
+
+@router.get("/purchasing")
+def get_department_transactions(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    sheet : int = Query(1, ge=1, le=3),
+    user_now: Users = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    
+    # if user_now.role.name != RoleEnum.MANAGER or user_now.role.name != RoleEnum.ADMIN:
+    #     raise HTTPException(status_code=403, detail="Hanya Manager yang boleh koreksi data.")
+
+    try:
+        result = service.get_purchasing_transactions(
+            sheet_number=sheet,
+            skip=page,
+            limit=limit
+        )
+        return result
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server.{e}")
+    
+
+
 
 # ==========================================
 # UPDATE TRANSACTION [MANAGER ACCESS ]
@@ -69,3 +93,25 @@ def edit_single_transaction(
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail="Terjadi kesalahan internal server.")
+
+
+
+@router.get("/finance")
+def get_finance_transactions_endpoint(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    report_type: Optional[str] = Query(None, description="Filter tipe report, contoh: IS, BS"),
+    # userNow: Users = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    skip = (page - 1) * limit
+    
+    try:
+        result = service.get_finance_transactions(
+            skip=skip,
+            limit=limit,
+            report_type=report_type
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server: {e}")

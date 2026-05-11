@@ -1,14 +1,21 @@
 from typing import Optional
 import datetime
+import decimal
 import enum
 
 import shortuuid
-from sqlalchemy import Boolean, Date, DateTime, Double, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, REAL, Sequence, String, Text, UniqueConstraint, text
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Double, Enum, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, REAL, Sequence, String, Table, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
     pass
+
+
+class ActualBudgetEnum(str, enum.Enum):
+    ACTUAL = 'ACTUAL'
+    BUDGET = 'BUDGET'
+    NA = 'NA'
 
 
 class RoleEnum(str, enum.Enum):
@@ -45,6 +52,87 @@ class Departments(Base):
     history: Mapped[list['History']] = relationship('History', back_populates='department')
 
 
+class FinanceAccountNames(Base):
+    __tablename__ = 'finance_account_names'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='pk_finance_account_names'),
+        UniqueConstraint('account_name', name='uq_finance_account_names_account_name'),
+        {'schema': 'oltp_main'}
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    account_name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+
+    finance_transaction_rules: Mapped[list['FinanceTransactionRules']] = relationship('FinanceTransactionRules', back_populates='account_name')
+
+
+class FinanceCategories(Base):
+    __tablename__ = 'finance_categories'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='pk_finance_categories'),
+        UniqueConstraint('name', name='uq_finance_categories_name'),
+        {'schema': 'oltp_main'}
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+
+    finance_transaction_rules: Mapped[list['FinanceTransactionRules']] = relationship('FinanceTransactionRules', back_populates='category')
+
+
+class FinanceSheets(Base):
+    __tablename__ = 'finance_sheets'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='pk_finance_sheets'),
+        UniqueConstraint('name', name='uq_finance_sheets_name'),
+        {'schema': 'oltp_main'}
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+
+    finance_transaction_rules: Mapped[list['FinanceTransactionRules']] = relationship('FinanceTransactionRules', back_populates='sheet')
+
+
+class FinanceSubCategories(Base):
+    __tablename__ = 'finance_sub_categories'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='pk_finance_sub_categories'),
+        UniqueConstraint('name', name='uq_finance_sub_categories_name'),
+        {'schema': 'oltp_main'}
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+
+    finance_transaction_rules: Mapped[list['FinanceTransactionRules']] = relationship('FinanceTransactionRules', back_populates='sub_category')
+
+
+class FinanceSubSubCategories(Base):
+    __tablename__ = 'finance_sub_sub_categories'
+    __table_args__ = (
+        PrimaryKeyConstraint('id', name='pk_finance_sub_sub_categories'),
+        UniqueConstraint('name', name='uq_finance_sub_sub_categories_name'),
+        {'schema': 'oltp_main'}
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    is_placeholder: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+
+    finance_transaction_rules: Mapped[list['FinanceTransactionRules']] = relationship('FinanceTransactionRules', back_populates='sub_sub_category')
+
+
 class Roles(Base):
     __tablename__ = 'roles'
     __table_args__ = (
@@ -59,6 +147,52 @@ class Roles(Base):
 
     users: Mapped[list['Users']] = relationship('Users', back_populates='role')
     history: Mapped[list['History']] = relationship('History', back_populates='role')
+
+
+t_vw_finance_transaction_rule_lookup = Table(
+    'vw_finance_transaction_rule_lookup', Base.metadata,
+    Column('rule_id', BigInteger),
+    Column('sheet_name', Text),
+    Column('category_name', Text),
+    Column('sub_category_name', Text),
+    Column('sub_sub_category_name', Text),
+    Column('account_name', Text),
+    Column('actual_budget', Text),
+    Column('is_active', Boolean),
+    schema='oltp_main'
+)
+
+
+class FinanceTransactionRules(Base):
+    __tablename__ = 'finance_transaction_rules'
+    __table_args__ = (
+        ForeignKeyConstraint(['account_name_id'], ['oltp_main.finance_account_names.id'], name='fk_finance_transaction_rules_account_name'),
+        ForeignKeyConstraint(['category_id'], ['oltp_main.finance_categories.id'], name='fk_finance_transaction_rules_category'),
+        ForeignKeyConstraint(['sheet_id'], ['oltp_main.finance_sheets.id'], name='fk_finance_transaction_rules_sheet'),
+        ForeignKeyConstraint(['sub_category_id'], ['oltp_main.finance_sub_categories.id'], name='fk_finance_transaction_rules_sub_category'),
+        ForeignKeyConstraint(['sub_sub_category_id'], ['oltp_main.finance_sub_sub_categories.id'], name='fk_finance_transaction_rules_sub_sub_category'),
+        PrimaryKeyConstraint('id', name='pk_finance_transaction_rules'),
+        UniqueConstraint('sheet_id', 'category_id', 'sub_category_id', 'sub_sub_category_id', 'account_name_id', 'actual_budget', name='uq_finance_transaction_rules_combo'),
+        {'schema': 'oltp_main'}
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    sheet_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    category_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    sub_category_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    sub_sub_category_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    account_name_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    actual_budget: Mapped[ActualBudgetEnum] = mapped_column(Enum(ActualBudgetEnum, values_callable=lambda cls: [member.value for member in cls], name='actual_budget_enum', schema='oltp_main'), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+
+    account_name: Mapped['FinanceAccountNames'] = relationship('FinanceAccountNames', back_populates='finance_transaction_rules')
+    category: Mapped['FinanceCategories'] = relationship('FinanceCategories', back_populates='finance_transaction_rules')
+    sheet: Mapped['FinanceSheets'] = relationship('FinanceSheets', back_populates='finance_transaction_rules')
+    sub_category: Mapped['FinanceSubCategories'] = relationship('FinanceSubCategories', back_populates='finance_transaction_rules')
+    sub_sub_category: Mapped['FinanceSubSubCategories'] = relationship('FinanceSubSubCategories', back_populates='finance_transaction_rules')
+    finance_transactions: Mapped[list['FinanceTransactions']] = relationship('FinanceTransactions', back_populates='rule')
 
 
 class Users(Base):
@@ -121,6 +255,7 @@ class History(Base):
     role: Mapped['Roles'] = relationship('Roles', back_populates='history')
     user: Mapped['Users'] = relationship('Users', back_populates='history')
     fact_finance: Mapped[list['FactFinance']] = relationship('FactFinance', back_populates='history')
+    finance_transactions: Mapped[list['FinanceTransactions']] = relationship('FinanceTransactions', back_populates='history')
     purchasing_sheet1: Mapped[list['PurchasingSheet1']] = relationship('PurchasingSheet1', back_populates='history')
     purchasing_sheet2: Mapped[list['PurchasingSheet2']] = relationship('PurchasingSheet2', back_populates='history')
     purchasing_sheet3: Mapped[list['PurchasingSheet3']] = relationship('PurchasingSheet3', back_populates='history')
@@ -153,6 +288,28 @@ class FactFinance(Base):
     actual_budget: Mapped[Optional[str]] = mapped_column(String(50))
 
     history: Mapped['History'] = relationship('History', back_populates='fact_finance')
+
+
+class FinanceTransactions(Base):
+    __tablename__ = 'finance_transactions'
+    __table_args__ = (
+        ForeignKeyConstraint(['history_id'], ['oltp_main.history.id'], name='fk_oltp_finance_transactions_history'),
+        ForeignKeyConstraint(['rule_id'], ['oltp_main.finance_transaction_rules.id'], name='fk_oltp_finance_transactions_rule'),
+        PrimaryKeyConstraint('id', name='pk_oltp_finance_transactions'),
+        UniqueConstraint('rule_id', 'period_month', name='uq_oltp_finance_transactions_rule_month'),
+        {'schema': 'oltp_main'}
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    history_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    rule_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    period_month: Mapped[datetime.date] = mapped_column(Date, nullable=False)
+    amount: Mapped[decimal.Decimal] = mapped_column(Numeric(26, 6), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
+
+    history: Mapped['History'] = relationship('History', back_populates='finance_transactions')
+    rule: Mapped['FinanceTransactionRules'] = relationship('FinanceTransactionRules', back_populates='finance_transactions')
 
 
 class PurchasingSheet1(Base):

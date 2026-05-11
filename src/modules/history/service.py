@@ -56,7 +56,7 @@ class HistoryService :
         )
         
         return {
-            "items": items,
+            "data": items,
             "total": total,
             "page": page,
             "size": size,
@@ -113,12 +113,12 @@ class HistoryService :
 
         # 4. Ambil konfigurasi model (FactFinance/HR/dll) dari registry
         config = get_dept_config(record.department_id)
-        target_model = config["model"]
+        # target_model = config["model"]
 
         # 5. EKSEKUSI REJECT ATAU APPROVE
         if action == StatusEnum.REJECTED:
             # Hapus data transaksi
-            self.history_repo.delete_related_facts(target_model, record.id)
+            # self.history_repo.delete_related_facts(target_model, record.id)
             
             # Update status history & catatan
             record.status = StatusEnum.REJECTED

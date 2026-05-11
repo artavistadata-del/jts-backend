@@ -81,7 +81,7 @@ class HistoryRepository :
                 # "role_id": history_obj.role_id,
                 # "department_id": history_obj.department_id,
                 "file_name": history_obj.file_name,
-                "notes": history_obj.note,
+                "note": history_obj.note,
                 "time_stamp": history_obj.time_stamp.isoformat() if history_obj.time_stamp else None,
                 "status": history_obj.status.value if history_obj.status else None,
                 "user" : {

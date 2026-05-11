@@ -1,10 +1,12 @@
-from src.models.models import RoleEnum
+from src.models.models import PurchasingSheet1, PurchasingSheet2, PurchasingSheet3, RoleEnum
+from src.modules.history.service import HistoryService
 from src.modules.transaction.repository import TransactionRepository
 from src.modules.departments.registry import get_dept_config
 
 class TransactionService:
-    def __init__(self, repo: TransactionRepository):
+    def __init__(self, repo: TransactionRepository, history_service : HistoryService):
         self.repo = repo
+        self.history_service = history_service
 
     # ==========================================
     # UPDATE TRANSACTION [MANAGER ACCESS ]
@@ -49,4 +51,57 @@ class TransactionService:
             "page": page,
             "size": size,
             "total_pages": (total + size - 1) // size
+        }
+    
+
+    def get_purchasing_transactions(self, sheet_number: int, skip: int, limit: int):
+        
+        sheet_map = {
+            1: PurchasingSheet1,
+            2: PurchasingSheet2,
+            3: PurchasingSheet3
+        }
+        model = sheet_map.get(sheet_number)
+        if not model:
+            raise ValueError("Nomor sheet harus 1, 2, atau 3.")
+
+        results, has_next = self.repo.get_all_purchasing_data(model, skip, limit)
+
+        return {
+            "data": results,
+            "pagination": {
+                "skip": skip,
+                "limit": limit,
+                "has_next_page": has_next
+            },
+            "metadata": {
+                "sheet": sheet_number
+            }
+        }
+
+
+    # ==========================================
+    # GET ALL FINANCE TRANSACTIONS
+    # ==========================================
+    def get_finance_transactions(self, skip: int, limit: int, report_type: str = None):
+        """
+        Service khusus untuk menarik data Finance dengan optimasi kolom (tanpa SELECT *)
+        serta filter opsional berdasarkan IS / BS.
+        """
+        results, has_next = self.repo.get_all_finance_data(
+            skip=skip, 
+            limit=limit, 
+            report_type=report_type
+        )
+
+        return {
+            "data": results,
+            "pagination": {
+                "skip": skip,
+                "limit": limit,
+                "has_next_page": has_next
+            },
+            "metadata": {
+                "report_type": report_type
+            }
         }

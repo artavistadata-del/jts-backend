@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from src.models.models import History, StatusEnum
+from src.models.models import FinanceTransactions, History, StatusEnum, t_vw_finance_transaction_rule_lookup
+# from src.models.models import FinanceSheets, FinanceTransactionRules, FinanceTransactions
 
 class TransactionRepository:
     def __init__(self, db: Session):
@@ -27,7 +28,7 @@ class TransactionRepository:
         total_count = query.count()
 
         # 5. Ambil data dengan offset & limit
-        results = query.order_by(model_class.id_fact.desc())\
+        results = query.order_by(model_class.id.desc())\
                        .offset(skip)\
                        .limit(limit)\
                        .all()
@@ -58,4 +59,91 @@ class TransactionRepository:
         
         self.db.commit()
         return row
+
+    # ==========================================
+    # GET ALL PURCHASING TRANSACTIONS (NO COUNT)
+    # ==========================================
+    def get_all_purchasing_data(self, model_class, skip: int, limit: int):
+        
+        fetch_limit = limit + 1
+        
+        results = (
+            self.db.query(model_class)
+            .order_by(model_class.id.desc())
+            .offset(skip)
+            .limit(fetch_limit)
+            .all()
+        )
+        
+        has_next = len(results) > limit
+        
+        if has_next:
+            results = results[:-1]
+            
+        return results, has_next
+
+
+    # ==========================================
+    # GET ALL FINANCE TRANSACTIONS (NO SELECT *)
+    # ==========================================
+    def get_all_finance_data(self, skip: int, limit: int, report_type: str = None):
+    
+        fetch_limit = limit + 1
+        
+        query = self.db.query(
+            FinanceTransactions.id,
+            FinanceTransactions.history_id,
+            FinanceTransactions.rule_id,
+            FinanceTransactions.period_month,
+            FinanceTransactions.amount,
+            t_vw_finance_transaction_rule_lookup.c.sheet_name,
+            t_vw_finance_transaction_rule_lookup.c.category_name,
+            t_vw_finance_transaction_rule_lookup.c.sub_category_name,
+            t_vw_finance_transaction_rule_lookup.c.sub_sub_category_name,
+            t_vw_finance_transaction_rule_lookup.c.account_name,
+            t_vw_finance_transaction_rule_lookup.c.actual_budget
+        ).join(
+            t_vw_finance_transaction_rule_lookup, 
+            FinanceTransactions.rule_id == t_vw_finance_transaction_rule_lookup.c.rule_id
+        )
+        
+        if report_type:
+            query = query.filter(
+                t_vw_finance_transaction_rule_lookup.c.sheet_name == report_type
+            )
+            
+        results = (
+            query.order_by(FinanceTransactions.id.desc())
+            .offset(skip)
+            .limit(fetch_limit)
+            .all()
+        )
+        
+        has_next = len(results) > limit
+        
+        if has_next:
+            results = results[:-1]
+
+        # 4. FORMAT HASIL KE DICTIONARY
+        # Semua deskripsi huruf sekarang akan ikut terkirim ke frontend
+        formatted_results = [
+            {
+                # "id": r.id,
+                # "history_id": r.history_id,
+                # "rule_id": r.rule_id,
+                "period_month": r.period_month,
+                "amount": float(r.amount),
+                "sheet_name": r.sheet_name,
+                "category_name": r.category_name,
+                "sub_category_name": r.sub_category_name,
+                "sub_sub_category_name": r.sub_sub_category_name,
+                "account_name": r.account_name,
+                "actual_budget": r.actual_budget,
+                # "last_modified" : r.updated_at
+            }
+            for r in results
+        ]
+            
+        return formatted_results, has_next
+
     

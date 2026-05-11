@@ -33,11 +33,11 @@ async def upload_payroll_excel(
             detail="Format ditolak. Harap unggah file Excel (.xls atau .xlsx)"
         )
     
-    # if userNow.role.name == 'ADMIN' or userNow.role.name == 'DIREKTUR' :
-    #     raise HTTPException(
-    #         status_code=403, 
-    #         detail="Akses ditolak. Role Anda Tidak Punya akses Upload File"
-    #     )
+    if userNow.role.name == 'DIREKTUR' :
+        raise HTTPException(
+            status_code=403, 
+            detail="Akses ditolak. Role Anda Tidak Punya akses Upload File"
+        )
     
     result = await run_in_threadpool(
         upload_service.process_payroll_upload, 
@@ -76,8 +76,8 @@ async def upload_payroll_excel(
         file_stream=file.file,    
         file_size=file.size,
         content_type=file.content_type,
-        target_dept_id=target_dept_id,
-        userNow=userNow
+        target_department_id=target_dept_id,
+        user_now=userNow
     )
     
     if result.get("status") == "error":
@@ -141,7 +141,6 @@ def confirm_upload(
     
     record = history_service.get_history_by_uuid(history_id)
     
-
     if not record:
         raise HTTPException(status_code=404, detail="Data history tidak ditemukan.")
     

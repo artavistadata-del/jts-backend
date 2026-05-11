@@ -37,7 +37,7 @@ class TransactionItemResponse(BaseModel):
         return wib_dt.strftime("%Y-%m-%d %H:%M:%S WIB")
 
 class TransactionPaginatedResponse(BaseModel):
-    items: list[TransactionItemResponse]
+    data: list[TransactionItemResponse]
     total: int
     page: int
     size: int
