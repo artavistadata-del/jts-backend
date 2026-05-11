@@ -48,8 +48,8 @@ def get_history_service(history_repo : HistoryRepository = Depends(get_hist_repo
 def get_minio_repo(client : Minio = Depends(get_minio_client)) -> UploadRepository:
     return UploadRepository(client)
 
-def get_minio_service(minio_repo : UploadRepository = Depends(get_minio_repo), history_service : HistoryService = Depends(get_history_service)) -> UploadService:
-    return UploadService(minio_repo, history_service)
+def get_minio_service(minio_repo : UploadRepository = Depends(get_minio_repo), history_service : HistoryService = Depends(get_history_service), departments_service : DepartmentService = Depends(get_dept_service)) -> UploadService:
+    return UploadService(minio_repo, history_service, departments_service)
 
 def get_transaction_service(transaction_repo : TransactionRepository = Depends(get_transaction_repo)) -> TransactionService :
     return TransactionService(transaction_repo)

@@ -104,6 +104,8 @@ class FinService(AbstractCleaningService):
 
             total_unchanged = total_row_excel - (total_insert + total_replace)
 
+            warnings = self._detect_wip_mismatch(history_id)
+
             record.analysis_result = {
                 "dept_name": "FINANCE",
                 "total_row_excel": total_row_excel,
@@ -112,7 +114,7 @@ class FinService(AbstractCleaningService):
                 "total_unchanged": total_unchanged,
                 "preview_insert": preview_insert,
                 "preview_replace": preview_replace,
-                "warnings": [],
+                "warnings": warnings,
             }
 
             record.status = StatusEnum.AWAITING_PREVIEW
@@ -360,6 +362,107 @@ class FinService(AbstractCleaningService):
         )
 
         return df_staging.height
+
+
+
+    def _detect_wip_mismatch(self, history_id: int):
+        """
+        Deteksi human error:
+        WIP BEGINNING BALANCE ACTUAL bulan ini
+        harus sama secara absolute dengan
+        WIP ENDING BALANCE ACTUAL bulan sebelumnya.
+
+        Prioritas ending:
+        1. Ambil dari staging jika bulan ending ikut diupload.
+        2. Kalau tidak ada di staging, ambil dari main table.
+        """
+
+        query_wip_mismatch = text(f"""
+            WITH StagingBeginning AS (
+                SELECT
+                    s.period_month,
+                    s.amount
+                FROM {self.stg_table} s
+                JOIN {self.rule_lookup_view} r
+                    ON s.rule_id = r.rule_id
+                WHERE s.history_id = :history_id
+                AND r.account_name = 'WIP BEGINNING BALANCE'
+                AND r.actual_budget = 'ACTUAL'
+            ),
+
+            StagingEnding AS (
+                SELECT
+                    s.period_month,
+                    s.amount
+                FROM {self.stg_table} s
+                JOIN {self.rule_lookup_view} r
+                    ON s.rule_id = r.rule_id
+                WHERE s.history_id = :history_id
+                AND r.account_name = 'WIP ENDING BALANCE'
+                AND r.actual_budget = 'ACTUAL'
+            ),
+
+            MainEnding AS (
+                SELECT
+                    f.period_month,
+                    f.amount
+                FROM {self.main_table} f
+                JOIN {self.rule_lookup_view} r
+                    ON f.rule_id = r.rule_id
+                WHERE r.account_name = 'WIP ENDING BALANCE'
+                AND r.actual_budget = 'ACTUAL'
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM StagingEnding se
+                    WHERE se.period_month = f.period_month
+                )
+            ),
+
+            EndingCombined AS (
+                SELECT period_month, amount
+                FROM StagingEnding
+
+                UNION ALL
+
+                SELECT period_month, amount
+                FROM MainEnding
+            )
+
+            SELECT
+                sb.period_month AS bulan_upload,
+                sb.amount AS nilai_beginning_baru,
+                ec.amount AS nilai_ending_lama
+            FROM StagingBeginning sb
+            LEFT JOIN EndingCombined ec
+                ON ec.period_month = (sb.period_month - INTERVAL '1 month')::DATE
+            WHERE
+                ec.amount IS NULL
+                OR ROUND(ABS(sb.amount)::numeric, 6)
+                IS DISTINCT FROM ROUND(ABS(ec.amount)::numeric, 6)
+        """)
+
+        rows = self.db.execute(
+            query_wip_mismatch,
+            {"history_id": history_id}
+        ).fetchall()
+
+        warnings = []
+
+        for row in rows:
+            val_beg = f"{row.nilai_beginning_baru:,.2f}" if row.nilai_beginning_baru is not None else "0"
+
+            if row.nilai_ending_lama is None:
+                warnings.append(
+                    f"⚠️ {row.bulan_upload}: Data WIP Ending Actual bulan lalu tidak ditemukan."
+                )
+            else:
+                val_end = f"{row.nilai_ending_lama:,.2f}"
+                warnings.append(
+                    f"⚠️ {row.bulan_upload}: WIP Beginning Actual ({val_beg}) "
+                    f"≠ WIP Ending bulan lalu ({val_end})."
+                )
+
+        return warnings
 
     # ============================================================
     # COMMIT

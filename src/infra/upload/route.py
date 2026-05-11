@@ -62,7 +62,6 @@ async def upload_payroll_excel(
     target_dept_id: Optional[str] = Form(None),
     userNow: Users = Depends(get_current_user),
     upload_service: UploadService = Depends(get_minio_service),
-    dept_service : DepartmentService = Depends(get_dept_service)
 ):
     
     if not file.filename.endswith(('.xls', '.xlsx')):
@@ -71,42 +70,14 @@ async def upload_payroll_excel(
             detail="Format ditolak. Harap unggah file Excel (.xls atau .xlsx)"
         )
     
-    final_dept_id = None
-
-    if userNow.role.name == RoleEnum.ADMIN.value:
-        if not target_dept_id:
-            raise HTTPException(
-                status_code=400, 
-                detail="Department ID harus disertakan untuk admin."
-            )
-        
-        dept_find = dept_service.display_dept_by_uuid(target_dept_id)
-        if not dept_find:
-            raise HTTPException(
-                status_code=404,
-                detail="Department Tidak Ditemukan"
-            )
-        
-        final_dept_id = dept_find.id 
-
-    else:
-        # --- RULES UNTUK STAFF / MANAGER ---
-        final_dept_id = userNow.department_id
-        result = dept_service.display_dept_by_id(final_dept_id)
-        if not result:
-            raise HTTPException(
-                status_code=404,
-                detail="Department Tidak Ditemukan"
-            )
-
     result = await run_in_threadpool(
-        upload_service.process_payroll_upload, 
-        user=userNow,              
+        upload_service.process_payroll_upload,               
         file_name=file.filename,
         file_stream=file.file,    
         file_size=file.size,
         content_type=file.content_type,
-        target_dept_id=final_dept_id 
+        target_dept_id=target_dept_id,
+        userNow=userNow
     )
     
     if result.get("status") == "error":
