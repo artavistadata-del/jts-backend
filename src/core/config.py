@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     # =========================================
     # AZURE CONFIG
     # =========================================
-    # AZURE_TENANT_ID : str
-    # AZURE_CLIENT_ID : str
-    # AZURE_CLIENT_SECRET : str
+    AZURE_TENANT_ID : str
+    AZURE_CLIENT_ID : str
+    AZURE_CLIENT_SECRET : str
 
     # =========================================
     # JWT CONFIG
