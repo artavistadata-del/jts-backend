@@ -27,7 +27,6 @@ class AbstractCleaningService(ABC):
         return cleanser_func(raw_bytes, history_id)
     
 
-    @abstractmethod
     def _pull_data(self, history_id: int, filename: str):
         """
         Menjalankan pull data dari category table master.
@@ -36,7 +35,6 @@ class AbstractCleaningService(ABC):
         """
         pass
 
-    @abstractmethod
     def _mapping_data(self, history_id: int, filename: str):
         """
         Menjalankan mapping dari hasil pull data
@@ -45,7 +43,6 @@ class AbstractCleaningService(ABC):
         """
         pass
 
-    @abstractmethod
     def _push_data(self, history_id: int, filename: str):
         """
         Menjalankan push data dari hasil mapping

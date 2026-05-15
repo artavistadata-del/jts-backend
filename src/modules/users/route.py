@@ -6,7 +6,7 @@ from src.core.database import get_db
 from src.core.dependencies import get_user_service
 from src.core.security import RoleChecker, get_current_user
 from src.models.models import Users
-from src.modules.users.schema import UserMeResponse, UserSignIn as UserSchemaSignIn, UserUpdateSchema
+from src.modules.users.schema import UserMeResponse, UserSignIn as UserSchemaSignIn, UserUpdatePasswordPayload, UserUpdateSchema
 from src.modules.users.schema import UserSignUp as UserSchemaSignUp
 from src.modules.users.service import UserService
 
@@ -54,26 +54,6 @@ def sign_up(userData : UserSchemaSignUp,
     return {"message": "Registrasi berhasil", "data": result}
 
 
-
-# ==========================================
-# GET ALL USER [ADMIN ACCESS]
-# ==========================================
-# @router.get("/", status_code=200)
-# def get_all_users(
-#     page: int = Query(1, ge=1, description="Halaman yang ingin ditampilkan"),
-#     limit: int = Query(10, ge=1, le=100, description="Jumlah data per halaman"),
-#     userService: UserService = Depends(get_user_service),
-#     userNow: Users = Depends(allow_admin_only) 
-# ):
-#     result = userService.get_all_user(page=page, limit=limit)
-#     return {
-#         "status": "berhasil",
-#         "message": "Data users berhasil diambil",
-#         "data": result["data"],
-#         "meta": result["meta"]
-#     }
-
-
 @router.get("/", status_code=200)
 def get_all_users(
     page: int = Query(1, ge=1, description="Halaman yang ingin ditampilkan"),
@@ -83,13 +63,33 @@ def get_all_users(
     userService: UserService = Depends(get_user_service),
     userNow: Users = Depends(allow_admin_only) 
 ):
-    # Panggil service dengan parameter tambahan
     result = userService.get_all_user(page=page, limit=limit, sort_by=sort_by, sort_order=sort_order)
     return {
         "status": "berhasil",
         "message": "Data users berhasil diambil",
         "data": result["data"],
         "meta": result["meta"]
+    }
+
+
+@router.patch("/change-password", status_code=200)
+def update_password_user(
+    payload : UserUpdatePasswordPayload,
+    user_service: UserService = Depends(get_user_service),
+    user_now: Users = Depends(get_current_user)
+):
+
+    result = user_service.update_password_user(
+        user_id = user_now.id,
+        current_password = payload.current_password,
+        new_password = payload.new_password,
+        confirm_new_password = payload.confirm_new_password
+    )
+    print(user_now.id)
+
+    return {
+        "status": "Berhasil",
+        "message": f"Password Berhasil di Update"
     }
 
 # ==========================================
@@ -197,9 +197,6 @@ def delete_user_route(
         "message": f"Akun dengan NIK {result['nik']} berhasil dihapus",
         # "data": result
     }
-
-
-
 
 
 # @router.post("/migrate-uuid-manual", tags=["System"])

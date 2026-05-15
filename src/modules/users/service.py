@@ -202,6 +202,31 @@ class UserService :
         return self.user_repo.update_user(user)
     
     # ==========================================
+    # UPDATE USER [ USER ACCESS ]
+    # ==========================================
+    def update_password_user(
+            self, 
+            user_id :int, 
+            current_password : str,
+            new_password : str, 
+            confirm_new_password : str
+        ):
+        
+        user = self.user_repo.get_user_by_id(user_id)
+        print(user_id)
+        if not user:
+            raise HTTPException(404, f"User tidak ditemukan{user_id}")
+
+        if not verify_password(current_password, user.password):
+            raise HTTPException(400, "Password lama tidak sesuai")
+
+        if new_password != confirm_new_password:
+            raise HTTPException(400, "Password baru dan konfirmasi password tidak sesuai")
+
+        user.password = get_password_hash(new_password)
+        return self.user_repo.update_user(user)
+    
+    # ==========================================
     # REACTIVE USER [ ADMIN ACCESS ]
     # ==========================================
     def reactivate_user(self, id_user : str):

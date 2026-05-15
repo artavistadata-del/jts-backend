@@ -49,6 +49,7 @@ def commit_upsert_task(self, history_id: int, filename: str, id_dept: int, actio
     try:
         service = get_cleaning_service(id_dept, db)
         # service.execute_commit(history_id, filename)
+        print(action_value)
         if action_value == ConfirmUploadInput.CONFIRM.value :
             service.execute_commit(history_id, filename)
             return f"Upsert complete for ID {history_id}"
