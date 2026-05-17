@@ -8,6 +8,16 @@ fastAPI :
 1. cd ~/jts-project/project-dashboard
 2. uvicorn src.main:app --host 0.0.0.0 --port 8881 --reload
 
+celery pm2 :
+
+1. cd ~/jts-project/project-dashboard
+2. pm2 start "celery -A config.celery_conf --loglevel=info" --name prod-worker
+
+fastAPI pm2 :
+
+1. cd ~/jts-project/project-dashboard
+2. pm2 start "uvicorn main:app --host 0.0.0.0 --port 8000" --name prod-be
+
 📁 backend/
 ├── 📄 main.py # Entry point aplikasi (FastAPI instance)
 ├── 📁 api/ # Kumpulan rute utama
