@@ -1,10 +1,7 @@
 from src.models.models import FactFinance 
-# from models.models.models import FactHR  <-- Contoh untuk nanti
-
-# Import semua fungsi pembersih khusus
 from src.workers.cleanser.finance import process_finance_excel
 from src.workers.cleanser.purchasing import process_purchasing_excel
-# from cleaners.hr_cleanser import process_hr_excel <-- Contoh untuk nanti
+
 
 DEPT_CONFIG = {
     1: { # 1 = ID Departemen Finance
@@ -82,6 +79,27 @@ DEPT_CONFIG = {
     #     "unique_keys": ["bulan", "nik_karyawan", "komponen_gaji"],
     #     "constraint_name": "uix_hr_data"
     # }
+}
+
+
+DEPARTMENT_CONFIG = {
+    'FINANCE' : {
+        'name' : 'finance',
+        "powerbi": {
+            "report_id": "0ad73404-1eda-4f22-b16e-e494b47205ec",
+            "dataset_id": "f2716cdf-218f-4789-bffc-453fe4b3d8db",
+        }
+    },
+    'PURCHASING' : {
+        'name' : 'purchasing',
+        "powerbi": {
+            "report_id": "b5284068-cb63-41c9-ad98-d00aac2019f8",
+            "dataset_id": "97c8dd60-c7c0-43ce-8fa5-d7f36a5cc447",
+        },
+    },
+    'SALES' : {
+        'name' : 'sales'
+    }
 }
 
 def get_dept_config(id_dept: int) -> dict:
