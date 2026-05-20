@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
-from src.models.models import FinanceTransactions, History, StatusEnum, t_vw_finance_transaction_rule_lookup
+from src.models.models import History, StatusEnum
+from src.models.stg_table import FinanceTransactions
+from src.models.finance import Transactions, t_vw_transaction_rule_lookup
 # from src.models.models import FinanceSheets, FinanceTransactionRules, FinanceTransactions
 
 class TransactionRepository:
@@ -86,34 +88,97 @@ class TransactionRepository:
     # ==========================================
     # GET ALL FINANCE TRANSACTIONS (NO SELECT *)
     # ==========================================
-    def get_all_finance_data(self, skip: int, limit: int, report_type: str = None):
+    # def get_all_finance_data(self, skip: int, limit: int, report_type: str = None):
     
+    #     fetch_limit = limit + 1
+        
+    #     query = self.db.query(
+    #         FinanceTransactions.id,
+    #         FinanceTransactions.history_id,
+    #         FinanceTransactions.rule_id,
+    #         FinanceTransactions.period_month,
+    #         FinanceTransactions.amount,
+    #         t_vw_finance_transaction_rule_lookup.c.sheet_name,
+    #         t_vw_finance_transaction_rule_lookup.c.category_name,
+    #         t_vw_finance_transaction_rule_lookup.c.sub_category_name,
+    #         t_vw_finance_transaction_rule_lookup.c.sub_sub_category_name,
+    #         t_vw_finance_transaction_rule_lookup.c.account_name,
+    #         t_vw_finance_transaction_rule_lookup.c.actual_budget
+    #     ).join(
+    #         t_vw_finance_transaction_rule_lookup, 
+    #         FinanceTransactions.rule_id == t_vw_finance_transaction_rule_lookup.c.rule_id
+    #     )
+        
+    #     if report_type:
+    #         query = query.filter(
+    #             t_vw_finance_transaction_rule_lookup.c.sheet_name == report_type
+    #         )
+            
+    #     results = (
+    #         query.order_by(FinanceTransactions.id.desc())
+    #         .offset(skip)
+    #         .limit(fetch_limit)
+    #         .all()
+    #     )
+        
+    #     has_next = len(results) > limit
+        
+    #     if has_next:
+    #         results = results[:-1]
+
+    #     # 4. FORMAT HASIL KE DICTIONARY
+    #     # Semua deskripsi huruf sekarang akan ikut terkirim ke frontend
+    #     formatted_results = [
+    #         {
+    #             # "id": r.id,
+    #             # "history_id": r.history_id,
+    #             # "rule_id": r.rule_id,
+    #             "period_month": r.period_month,
+    #             "amount": float(r.amount),
+    #             "sheet_name": r.sheet_name,
+    #             "category_name": r.category_name,
+    #             "sub_category_name": r.sub_category_name,
+    #             "sub_sub_category_name": r.sub_sub_category_name,
+    #             "account_name": r.account_name,
+    #             "actual_budget": r.actual_budget,
+    #             # "last_modified" : r.updated_at
+    #         }
+    #         for r in results
+    #     ]
+            
+    #     return formatted_results, has_next
+
+
+
+    def get_all_finance_data(self, skip: int, limit: int, report_type: str = None):
+        
         fetch_limit = limit + 1
         
+        # PENYESUAIAN: Menggunakan 'Transactions' dan 't_vw_transaction_rule_lookup'
         query = self.db.query(
-            FinanceTransactions.id,
-            FinanceTransactions.history_id,
-            FinanceTransactions.rule_id,
-            FinanceTransactions.period_month,
-            FinanceTransactions.amount,
-            t_vw_finance_transaction_rule_lookup.c.sheet_name,
-            t_vw_finance_transaction_rule_lookup.c.category_name,
-            t_vw_finance_transaction_rule_lookup.c.sub_category_name,
-            t_vw_finance_transaction_rule_lookup.c.sub_sub_category_name,
-            t_vw_finance_transaction_rule_lookup.c.account_name,
-            t_vw_finance_transaction_rule_lookup.c.actual_budget
+            Transactions.id,
+            Transactions.history_id,
+            Transactions.rule_id,
+            Transactions.period_month,
+            Transactions.amount,
+            t_vw_transaction_rule_lookup.c.sheet_name,
+            t_vw_transaction_rule_lookup.c.category_name,
+            t_vw_transaction_rule_lookup.c.sub_category_name,
+            t_vw_transaction_rule_lookup.c.sub_sub_category_name,
+            t_vw_transaction_rule_lookup.c.account_name,
+            t_vw_transaction_rule_lookup.c.actual_budget
         ).join(
-            t_vw_finance_transaction_rule_lookup, 
-            FinanceTransactions.rule_id == t_vw_finance_transaction_rule_lookup.c.rule_id
+            t_vw_transaction_rule_lookup, 
+            Transactions.rule_id == t_vw_transaction_rule_lookup.c.rule_id
         )
         
         if report_type:
             query = query.filter(
-                t_vw_finance_transaction_rule_lookup.c.sheet_name == report_type
+                t_vw_transaction_rule_lookup.c.sheet_name == report_type
             )
             
         results = (
-            query.order_by(FinanceTransactions.id.desc())
+            query.order_by(Transactions.id.desc())
             .offset(skip)
             .limit(fetch_limit)
             .all()
@@ -125,14 +190,13 @@ class TransactionRepository:
             results = results[:-1]
 
         # 4. FORMAT HASIL KE DICTIONARY
-        # Semua deskripsi huruf sekarang akan ikut terkirim ke frontend
         formatted_results = [
             {
-                # "id": r.id,
+                "id": r.id,
                 # "history_id": r.history_id,
                 # "rule_id": r.rule_id,
                 "period_month": r.period_month,
-                "amount": float(r.amount),
+                "value": float(r.amount),
                 "sheet_name": r.sheet_name,
                 "category_name": r.category_name,
                 "sub_category_name": r.sub_category_name,
@@ -140,6 +204,99 @@ class TransactionRepository:
                 "account_name": r.account_name,
                 "actual_budget": r.actual_budget,
                 # "last_modified" : r.updated_at
+            }
+            for r in results
+        ]
+            
+        return formatted_results, has_next
+    
+
+
+    # Di dalam class Repository Anda
+    def update_finance_transaction(self, transaction_id: int, new_amount: float):
+        # 1. Cari datanya dulu
+        transaction = self.db.query(Transactions).filter(Transactions.id == transaction_id).first()
+        
+        if not transaction:
+            return None # Return None jika ID tidak ditemukan
+            
+        # 2. Update nilainya
+        transaction.amount = new_amount
+        
+        # 3. Commit perubahan
+        self.db.commit()
+        self.db.refresh(transaction)
+        
+        return transaction
+
+    def delete_finance_transaction(self, transaction_id: int):
+        # 1. Cari datanya
+        transaction = self.db.query(Transactions).filter(Transactions.id == transaction_id).first()
+        
+        if not transaction:
+            return False # Return False jika ID tidak ditemukan
+            
+        # 2. Hapus datanya
+        self.db.delete(transaction)
+        self.db.commit()
+        
+        return True
+    
+
+    def get_staging_finance_data(self, history_id: int, skip: int, limit: int, report_type: str = None):
+        fetch_limit = limit + 1
+        
+        query = self.db.query(
+            FinanceTransactions.id,
+            FinanceTransactions.history_id,
+            FinanceTransactions.rule_id,
+            FinanceTransactions.period_month,
+            FinanceTransactions.amount,
+            FinanceTransactions.status,  
+            t_vw_transaction_rule_lookup.c.sheet_name,
+            t_vw_transaction_rule_lookup.c.category_name,
+            t_vw_transaction_rule_lookup.c.sub_category_name,
+            t_vw_transaction_rule_lookup.c.sub_sub_category_name,
+            t_vw_transaction_rule_lookup.c.account_name,
+            t_vw_transaction_rule_lookup.c.actual_budget
+        ).join(
+            t_vw_transaction_rule_lookup, 
+            FinanceTransactions.rule_id == t_vw_transaction_rule_lookup.c.rule_id
+        ).filter(
+            FinanceTransactions.status.isnot(None),
+            # TAMBAHAN KUNCI: Filter berdasarkan history_id
+            FinanceTransactions.history_id == history_id
+        )
+        
+        if report_type:
+            query = query.filter(
+                t_vw_transaction_rule_lookup.c.sheet_name == report_type
+            )
+            
+        results = (
+            query.order_by(FinanceTransactions.id.desc())
+            .offset(skip)
+            .limit(fetch_limit)
+            .all()
+        )
+        
+        has_next = len(results) > limit
+        if has_next:
+            results = results[:-1]
+
+        formatted_results = [
+            {
+                "id": r.id,
+                # "history_id": r.history_id,
+                "period_month": r.period_month,
+                "value": float(r.amount),
+                "status": r.status.value if r.status else None,
+                "sheet_name": r.sheet_name,
+                "category_name": r.category_name,
+                "sub_category_name": r.sub_category_name,
+                "sub_sub_category_name": r.sub_sub_category_name,
+                "account_name": r.account_name,
+                "actual_budget": r.actual_budget,
             }
             for r in results
         ]

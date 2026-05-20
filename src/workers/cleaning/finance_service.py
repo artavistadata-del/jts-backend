@@ -1,216 +1,157 @@
 import polars as pl
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import text
-from src.workers.cleaning.base_cleaning_service import BaseCleaningService
+from src.core.database import engine
+from src.models.models import History, StatusEnum
+from src.workers.cleaning.abstract_cleaning import AbstractCleaningService
 from src.workers.cleanser.finance import process_finance_excel
-from src.core.database import engine 
-from src.modules.departments.registry import get_dept_config
-from src.models.models import History, StatusEnum, FactFinance
+from src.workers.queries.finance import FinanceQueries
+from src.workers.mappers.finance import FinanceMapper
 
-class FinanceService(BaseCleaningService):
+class FinanceService(AbstractCleaningService):
     def __init__(self, db_session):
         super().__init__(db_session)
         self.id_dept = 1
-        # [UPDATE 1] Tambahkan actual_budget ke unique_keys
-        self.unique_keys = [
-            "bulan", "account_name", "report_type", "actual_budget",
-            "idx_category", "category", "idx_sub_category", 
-            "sub_category", "sub_sub_category"
+        self.main_table = "oltp_finance.transactions"
+        self.stg_table = "stg_table.finance_transactions"
+        self.rule_lookup_view = "oltp_finance.vw_transaction_rule_lookup"
+        self.join_cols = [
+            "sheet_name", "category_name", "sub_category_name", 
+            "sub_sub_category_name", "account_name", "actual_budget"
         ]
-        self.stg_schema = "stg_table"
 
-    # ===========================================================================================
-    # POSTGRES COMPARE
-    # ===========================================================================================
-    def execute_analyze(self, history_id: int, filename: str):
-        # Ambil record SATU KALI di awal
+    # ==========================================
+    # 1. TAHAP ANALYZE
+    # ==========================================
+    def execute_analyze(self, history_id: int, filename: str) -> dict:
         record = self.db.query(History).filter(History.id == history_id).first()
         if not record:
-            raise ValueError(f"Data history upload dengan ID {history_id} tidak ditemukan.")
+            raise ValueError(f"Data History dengan ID {history_id} tidak ditemukan.")
 
         try:
+            # 1. Extract & Clean Data Mentah
             df_excel = self._download_and_clean(history_id, filename, self.id_dept, process_finance_excel)
-            
-            # Isi null values agar SQL tidak bingung saat JOIN
-            string_keys = self.unique_keys[1:] 
-            df_excel = df_excel.with_columns([pl.col(c).fill_null("") for c in string_keys])
             total_row_excel = df_excel.height
 
-            # 2. PUSH KE STAGING TABLE
-            stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
-            db_uri = f"postgresql://{engine.url.username}:{engine.url.password}@{engine.url.host}:{engine.url.port}/{engine.url.database}"
-            
-            df_excel.write_database(
-                table_name=stg_table, 
-                connection=db_uri, 
-                if_table_exists="replace",
-                engine="adbc"
-            )
+            # 2. Get Rules dari Database & Siapkan Mapper
+            rule_query = FinanceQueries.get_rule_lookup(self.rule_lookup_view)
+            df_rule_raw = pl.read_database(query=rule_query, connection=engine)
+            df_rule_clean = FinanceMapper.prepare_rule_lookup(df_rule_raw, self.join_cols)
 
-            # 3. SUSUN KONDISI JOIN
-            join_conditions = " AND ".join([f"s.{key} = f.{key}" for key in self.unique_keys])
+            # 3. Transform / Mapping Data
+            df_staging = FinanceMapper.map_to_staging(df_excel, df_rule_clean, self.join_cols, history_id)
 
-            # ==========================================
-            # A. HITUNG & AMBIL PREVIEW INSERT
-            # ==========================================
-            query_insert = text(f"""
-                SELECT s.* FROM {stg_table} s
-                LEFT JOIN oltp_main.fact_finance f ON {join_conditions}
-                WHERE f.bulan IS NULL
-            """)
-            
-            df_insert = pl.read_database(query=query_insert, connection=engine)
-            total_insert = df_insert.height
-            preview_insert = df_insert.head(10).cast(pl.String).to_dicts()
+            # 4. Load ke Staging Table
+            self._push_staging_to_db(df_staging, history_id, self.stg_table)
 
-            # ==========================================
-            # B. HITUNG & AMBIL PREVIEW REPLACE
-            # ==========================================
-            query_replace = text(f"""
-                SELECT s.* FROM {stg_table} s
-                JOIN oltp_main.fact_finance f ON {join_conditions}
-                WHERE s.value != f.value
-            """)
-            
-            df_replace = pl.read_database(query=query_replace, connection=engine)
-            total_replace = df_replace.height
-            preview_replace = df_replace.head(10).cast(pl.String).to_dicts()
+            # =================================================================
+            # TAMBAHKAN LANGKAH INI (4.5) UNTUK MENG-UPDATE KOLOM STATUS
+            # =================================================================
+            update_status_query = FinanceQueries.update_staging_status(self.stg_table, self.main_table)
+            self.db.execute(update_status_query, {"history_id": history_id})
+            self.db.commit() # Wajib commit agar statusnya tersimpan sebelum dibaca preview
+            # =================================================================
 
-            # Hitung total unchanged
+            # 5. Hitung Preview & Warning (Khusus Finance)
+            total_insert, preview_insert = self._get_preview_data(history_id, FinanceQueries.get_preview_insert)
+            total_replace, preview_replace = self._get_preview_data(history_id, FinanceQueries.get_preview_replace)
             total_unchanged = total_row_excel - (total_insert + total_replace)
+            warnings = self._detect_wip_mismatch(history_id)
 
-            # ==========================================
-            # C. DETEKSI HUMAN ERROR (WIP MISMATCH) - HANYA UNTUK ACTUAL
-            # ==========================================
-            query_wip_mismatch = text(f"""
-                WITH StagingBeginning AS (
-                    SELECT bulan, value 
-                    FROM {stg_table} 
-                    WHERE account_name = '1 WIP BEGINNING BALANCE' 
-                      AND actual_budget ILIKE '%%Actual%%'
-                ),
-                EndingCombined AS (
-                    SELECT bulan, value 
-                    FROM {stg_table} 
-                    WHERE account_name = '2 WIP ENDING BALANCE'
-                      AND actual_budget ILIKE '%%Actual%%'
-                    
-                    UNION ALL
-                    
-                    SELECT bulan, value 
-                    FROM oltp_main.fact_finance f
-                    WHERE account_name = '2 WIP ENDING BALANCE'
-                      AND actual_budget ILIKE '%%Actual%%'
-                      AND NOT EXISTS (
-                          SELECT 1 FROM {stg_table} s 
-                          WHERE s.account_name = '2 WIP ENDING BALANCE' 
-                            AND s.actual_budget ILIKE '%%Actual%%'
-                            AND s.bulan = f.bulan
-                      )
-                )
-                SELECT 
-                    sb.bulan AS bulan_upload,
-                    sb.value AS nilai_beginning_baru,
-                    ec.value AS nilai_ending_lama
-                FROM StagingBeginning sb
-                LEFT JOIN EndingCombined ec 
-                    ON ec.bulan = (sb.bulan - INTERVAL '1 month')::DATE
-                WHERE ABS(sb.value) != ABS(ec.value) OR ec.value IS NULL
-            """)
-            
-            wip_mismatch_results = self.db.execute(query_wip_mismatch).fetchall()
-            
-            warnings = []
-            for row in wip_mismatch_results:
-                val_beg = f"{row.nilai_beginning_baru:,.2f}" if row.nilai_beginning_baru else "0"
-                if row.nilai_ending_lama is None:
-                    warnings.append(f"⚠️ {row.bulan_upload}: Data WIP Ending (Actual) bulan lalu tidak ditemukan.")
-                else:
-                    val_end = f"{row.nilai_ending_lama:,.2f}"
-                    warnings.append(f"⚠️ {row.bulan_upload}: WIP Beg Actual ({val_beg}) ≠ WIP End bln lalu ({val_end}).")
-
-            # 5. SIMPAN HASIL (Langsung pakai 'record' yang sudah diambil di awal)
+            # 6. Sukses -> Simpan Analysis Result & Ubah Status
             record.analysis_result = {
                 "dept_name": "FINANCE",
+                "total_row_excel": total_row_excel,
                 "total_insert": total_insert,
                 "total_replace": total_replace,
                 "total_unchanged": total_unchanged,
-                "total_row_excel": total_row_excel,
                 "preview_insert": preview_insert,
                 "preview_replace": preview_replace,
-                "warnings": warnings
+                "warnings": warnings,
+                "status": "Sukses Diproses"
             }
             record.status = StatusEnum.AWAITING_PREVIEW
             self.db.commit()
 
-        except ValueError as ve:
-            # Menangkap error validasi dari proses cleaning (Fail-Fast)
-            self.db.rollback()
-            record.status = StatusEnum.FAILED
-            record.analysis_result = {"error": f"Terjadi kesalahan sistem: {str(ve)}"}
-            self.db.commit()
-            raise ve
-            
+            return record.analysis_result
+
         except Exception as e:
-            # Menangkap error sistem database
-            self.db.rollback()
+            self.db.rollback() 
             record.status = StatusEnum.FAILED
-            record.note = "Terjadi kesalahan sistem saat memproses data."
+            record.analysis_result = {"error": str(e)}
             self.db.commit()
             raise e
-    # ======================================================================================
-    # POSTGRES COMMIT
-    # =====================================================================================
-    def execute_commit(self, history_id: int, filename: str):
-        record = self.db.query(History).get(history_id)
-        config = get_dept_config(self.id_dept)
+
+    # ==========================================
+    # 2. TAHAP COMMIT (UPSERT)
+    # ==========================================
+    def execute_commit(self, history_id: int, filename: str) -> dict:
+        record = self.db.query(History).filter(History.id == history_id).first()
+        valid_statuses = [StatusEnum.AWAITING_PREVIEW, StatusEnum.PROCESSING_INSERT]
         
-        stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
-        target_table = "oltp_main.fact_finance"
-        
+        if not record or record.status not in valid_statuses:
+            current_status = record.status.name if record else "Data Tidak Ditemukan"
+            raise ValueError(f"Gagal Commit! Status tidak diizinkan. Status saat ini: {current_status}")
+
         try:
-            # [UPDATE 3] Tambahkan actual_budget ke list columns
-            columns = [
-                "bulan", "account_name", "report_type", "actual_budget", 
-                "idx_category", "category", "idx_sub_category", "sub_category", 
-                "sub_sub_category", "value", "history_id"
-            ]
+            upsert_query = FinanceQueries.insert_into_main(self.stg_table, self.main_table)
+            self.db.execute(upsert_query, {"history_id": history_id})
             
-            cols_str = ", ".join(columns)
-            update_cols = [c for c in columns if c not in config["unique_keys"]]
-            excluded_str = ", ".join([f"{c} = EXCLUDED.{c}" for c in update_cols])
-
-            upsert_query = text(f"""
-                INSERT INTO {target_table} ({cols_str})
-                SELECT {cols_str} FROM {stg_table}
-                ON CONFLICT ON CONSTRAINT {config["constraint_name"]}
-                DO UPDATE SET {excluded_str};
-            """)
-
-            self.db.execute(upsert_query)
-            self.db.execute(text(f"DROP TABLE IF EXISTS {stg_table}"))
+            record.status = StatusEnum.APPROVED
             
-            record.status = StatusEnum.PENDING 
+            self.db.execute(text(f"DELETE FROM {self.stg_table} WHERE history_id = :h_id"), {"h_id": history_id})
+
             self.db.commit()
+            return {"status": "success", "message": "Data berhasil di-commit secara permanen."}
 
         except Exception as e:
             self.db.rollback()
             record.status = StatusEnum.FAILED
-            record.analysis_result = {
-                "error": "Gagal melakukan Upsert ke database utama.", 
-                "detail": str(e)
-            }
             self.db.commit()
             raise e
 
-    def execute_cancel(self, history_id: int, filename: str):
-        stg_table = f"{self.stg_schema}.stg_finance_upload_{history_id}"
+    # ==========================================
+    # 3. TAHAP CANCEL
+    # ==========================================
+    def execute_cancel(self, history_id: int, filename: str) -> dict:
+        record = self.db.query(History).filter(History.id == history_id).first()
+        if not record:
+            raise ValueError("Data History tidak ditemukan.")
+
         try:
-            self.db.execute(text(f"DROP TABLE IF EXISTS {stg_table}"))
-            record = self.db.query(History).filter(History.id == history_id).first()
-            if record:
-                record.status = StatusEnum.CANCELLED
+            self.db.execute(text(f"DELETE FROM {self.stg_table} WHERE history_id = :h_id"), {"h_id": history_id})
+            record.status = StatusEnum.CANCELLED
             self.db.commit()
+            return {"status": "success", "message": "Proses dibatalkan. Data staging telah dibersihkan."}
+
         except Exception as e:
             self.db.rollback()
             raise e
+
+    # ==========================================
+    # HELPER FUNCTIONS
+    # ==========================================
+    def _push_staging_to_db(self, df_staging: pl.DataFrame, history_id: int, table_name: str):
+        self.db.execute(text(f"DELETE FROM {table_name} WHERE history_id = :h_id"), {"h_id": history_id})
+        self.db.commit()
+        db_uri = f"postgresql://{engine.url.username}:{engine.url.password}@{engine.url.host}:{engine.url.port}/{engine.url.database}"
+        df_staging.write_database(table_name=table_name, connection=db_uri, if_table_exists="append", engine="sqlalchemy")
+
+    def _get_preview_data(self, history_id: int, query_func):
+        """Helper untuk mengeksekusi kueri preview (Insert/Replace) dan mengembalikan total & JSON preview"""
+        query = query_func(self.stg_table, self.main_table)
+        df_preview = pl.read_database(query=query, connection=engine, execute_options={"parameters": {"history_id": history_id}})
+        return df_preview.height, df_preview.head(10).cast(pl.String).to_dicts()
+
+    def _detect_wip_mismatch(self, history_id: int) -> list:
+        """Mengeksekusi query peringatan WIP"""
+        query = FinanceQueries.get_wip_mismatch(self.stg_table, self.main_table, self.rule_lookup_view)
+        rows = self.db.execute(query, {"history_id": history_id}).fetchall()
+        warnings = []
+        for row in rows:
+            val_beg = f"{row.nilai_beginning_baru:,.2f}" if row.nilai_beginning_baru is not None else "0"
+            if row.nilai_ending_lama is None:
+                warnings.append(f"⚠️ {row.bulan_upload}: Data WIP Ending Actual bulan lalu tidak ditemukan.")
+            else:
+                val_end = f"{row.nilai_ending_lama:,.2f}"
+                warnings.append(f"⚠️ {row.bulan_upload}: WIP Beginning Actual ({val_beg}) ≠ WIP Ending bulan lalu ({val_end}).")
+        return warnings

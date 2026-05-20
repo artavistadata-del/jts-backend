@@ -1,249 +1,216 @@
 import polars as pl
 from sqlalchemy import text
-
-from src.workers.cleaning.base_cleaning_service import BaseCleaningService
-from src.workers.cleanser.purchasing import process_purchasing_excel
 from src.core.database import engine
 from src.models.models import History, StatusEnum
+from src.workers.cleaning.abstract_cleaning import AbstractCleaningService
+from src.workers.cleanser.purchase import process_purchasing_excel
+from src.workers.queries.purchasing import PurchasingQueries
+from src.workers.mappers.purchasing import PurchasingMapper
 
 
-class PurchasingService(BaseCleaningService):
+class PurchasingService(AbstractCleaningService):
     def __init__(self, db_session):
         super().__init__(db_session)
         self.id_dept = 3
-        self.stg_schema = "stg_table"
+        self.stg_table_sheet3 = "stg_table.purchasing_sheet3_transactions"
+        self.stg_table_sheet2 = "stg_table.purchasing_sheet2_transactions"
+        self.stg_table_sheet1 = "stg_table.purchasing_sheet1_transactions"
 
-    def execute_analyze(self, history_id: int, filename: str):
+    # ==========================================
+    # HUKUM WAJIB: ALUR KERJA UTAMA
+    # ==========================================
+    def execute_analyze(self, history_id: int, filename: str) -> dict:
+        # 1. CARI DATA HISTORY DI DATABASE
         record = self.db.query(History).filter(History.id == history_id).first()
-
         if not record:
-            raise ValueError(f"Data history upload dengan ID {history_id} tidak ditemukan.")
+            raise ValueError(f"Data History dengan ID {history_id} tidak ditemukan.")
 
         try:
-            dfs = self._download_and_clean(
-                history_id=history_id,
-                filename=filename,
-                id_dept=self.id_dept,
-                cleanser_func=process_purchasing_excel,
+            # --- MULAI PROSES ETL ---
+            df_excel = self._download_and_clean(
+                history_id, filename, self.id_dept, process_purchasing_excel
             )
 
-            db_uri = (
-                f"postgresql://{engine.url.username}:{engine.url.password}"
-                f"@{engine.url.host}:{engine.url.port}/{engine.url.database}"
+            total_row_excel = (
+                df_excel["sheet1"].height
+                + df_excel["sheet2"].height
+                + df_excel["sheet3"].height
             )
 
-            staging_tables = {
-                "sheet1": f"{self.stg_schema}.stg_purchasing_sheet1_upload_{history_id}",
-                "sheet2": f"{self.stg_schema}.stg_purchasing_sheet2_upload_{history_id}",
-                "sheet3": f"{self.stg_schema}.stg_purchasing_sheet3_upload_{history_id}",
-            }
+            # =========================================
+            # Mapping Sheet 3
+            # =========================================
+            rule_stmt = PurchasingQueries.get_view_data("vw_sheet3_rules")
+            df_mapping_sheet3 = pl.read_database(query=rule_stmt, connection=engine)
+            df_staging_sheet3 = PurchasingMapper.map_sheet3_to_staging(
+                df_excel["sheet3"], df_mapping_sheet3, history_id
+            )
 
-            # Write semua sheet ke staging
-            for sheet_name, df in dfs.items():
-                df.write_database(
-                    table_name=staging_tables[sheet_name],
-                    connection=db_uri,
-                    if_table_exists="replace",
-                    engine="adbc",
-                )
+            # =========================================
+            # Mapping Sheet 2
+            # =========================================
+            rule_stmt = PurchasingQueries.get_view_data("vw_sheet2_master")
+            df_mapping_sheet2 = pl.read_database(query=rule_stmt, connection=engine)
+            df_staging_sheet2 = PurchasingMapper.map_sheet2_to_staging(
+                df_excel["sheet2"], df_mapping_sheet2, history_id
+            )
 
-            record.analysis_result = {
-                "dept_name": "PURCHASING",
-                "sheet1_rows": dfs["sheet1"].height,
-                "sheet2_rows": dfs["sheet2"].height,
-                "sheet3_rows": dfs["sheet3"].height,
-                "sheet1_preview": dfs["sheet1"].head(5).cast(pl.String).to_dicts(),
-                "sheet2_preview": dfs["sheet2"].head(5).cast(pl.String).to_dicts(),
-                "sheet3_preview": dfs["sheet3"].head(10).cast(pl.String).to_dicts(),
-                "staging_tables": staging_tables,
-            }
+            # =========================================
+            # Mapping Sheet 1 (Langsung jika tidak ada mapping khusus)
+            # =========================================
+            df_staging_sheet1 = df_excel["sheet1"]
+
+            # =========================================
+            # PUSH KE DATABASE
+            # =========================================
+            self._push_staging_to_db(
+                df_staging_sheet3, history_id, self.stg_table_sheet3
+            )
+            self._push_staging_to_db(
+                df_staging_sheet2, history_id, self.stg_table_sheet2
+            )
+            self._push_staging_to_db(
+                df_staging_sheet1, history_id, self.stg_table_sheet1
+            )
 
             record.status = StatusEnum.AWAITING_PREVIEW
             self.db.commit()
 
-        except ValueError as ve:
+            return {
+                "dept_name": "PURCHASING",
+                "sheet_processed": 3,
+                "total_row_excel": total_row_excel,
+                "status": "Sukses Diproses",
+            }
+
+        except Exception as e:
+            # 3. JIKA GAGAL: Batalkan transaksi staging, lalu ubah status history jadi FAILED
             self.db.rollback()
             record.status = StatusEnum.FAILED
-            record.analysis_result = {"error": str(ve)}
             self.db.commit()
-            raise ve
+
+            # (Opsional) Jika di model History Anda punya kolom untuk mencatat error, bisa pakai ini:
+            # record.error_message = str(e)
+
+            raise e  # Lemparkan error kembali agar tercatat di log Celery
+
+    # ==========================================
+    # HELPER LOAD DATA (PUSH)
+    # ==========================================
+    def _push_staging_to_db(
+        self, df_staging: pl.DataFrame, history_id: int, table_name: str
+    ):
+        """Menyimpan data staging dengan aman ke target tabel yang spesifik"""
+
+        delete_query = text(f"DELETE FROM {table_name} WHERE history_id = :h_id")
+        self.db.execute(delete_query, {"h_id": history_id})
+        self.db.commit()
+
+        db_uri = f"postgresql://{engine.url.username}:{engine.url.password}@{engine.url.host}:{engine.url.port}/{engine.url.database}"
+
+        df_staging.write_database(
+            table_name=table_name,
+            connection=db_uri,
+            if_table_exists="append",
+            engine="sqlalchemy",  # Ubah ke 'adbc' jika Anda sudah install adbc-driver-postgresql
+        )
+
+    # ==========================================
+    # EKSEKUSI CANCEL (BATAL)
+    # ==========================================
+    def execute_cancel(self, history_id: int, filename: str) -> dict:
+        """Membatalkan proses: Hapus data dari staging dan update status."""
+        record = self.db.query(History).filter(History.id == history_id).first()
+        if not record:
+            raise ValueError("Data History tidak ditemukan.")
+
+        try:
+            for stg_table in [
+                self.stg_table_sheet1,
+                self.stg_table_sheet2,
+                self.stg_table_sheet3,
+            ]:
+                self.db.execute(
+                    text(f"DELETE FROM {stg_table} WHERE history_id = :h_id"),
+                    {"h_id": history_id},
+                )
+
+            record.status = StatusEnum.CANCELLED
+            self.db.commit()
+
+            return {
+                "status": "success",
+                "message": "Proses dibatalkan. Data staging telah dibersihkan.",
+            }
 
         except Exception as e:
             self.db.rollback()
-            record.status = StatusEnum.FAILED
-            record.analysis_result = {
-                "error": "Terjadi kesalahan sistem saat cleansing Purchasing.",
-                "detail": str(e),
-            }
-            self.db.commit()
             raise e
 
-    def execute_commit(self, history_id: int, filename: str):
+    # ==========================================
+    # EKSEKUSI COMMIT (SETUJUI)
+    # ==========================================
+    def execute_commit(self, history_id: int, filename: str) -> dict:
+        """Menyetujui proses: Pindahkan data ke tabel utama dan update status."""
         record = self.db.query(History).filter(History.id == history_id).first()
 
-        if not record:
-            raise ValueError(f"Data history upload dengan ID {history_id} tidak ditemukan.")
-
-        stg_sheet1 = f"{self.stg_schema}.stg_purchasing_sheet1_upload_{history_id}"
-        stg_sheet2 = f"{self.stg_schema}.stg_purchasing_sheet2_upload_{history_id}"
-        stg_sheet3 = f"{self.stg_schema}.stg_purchasing_sheet3_upload_{history_id}"
+        if not record or record.status != StatusEnum.PROCESSING_INSERT:
+            raise ValueError(
+                f"Data tidak valid atau belum dalam status AWAITING_PREVIEW{record.status}."
+            )
 
         try:
-            # Biar idempotent kalau task kepanggil ulang:
-            # hapus dulu data final untuk history_id yang sama
-            self.db.execute(text("""
-                DELETE FROM oltp_main.purchasing_sheet1
-                WHERE history_id = :history_id
-            """), {"history_id": history_id})
+            # PENTING: Pastikan nama tabel utama di sini sama persis dengan yang ada di database Anda
+            self._move_staging_to_main_sheet3(
+                history_id, self.stg_table_sheet3, "oltp_purchasing.sheet3_transactions"
+            )
+            self._move_staging_to_main_sheet2(
+                history_id, self.stg_table_sheet2, "oltp_purchasing.sheet2_transactions"
+            )
+            self._move_staging_to_main_sheet1(
+                history_id, self.stg_table_sheet1, "oltp_purchasing.sheet1_transactions"
+            )
 
-            self.db.execute(text("""
-                DELETE FROM oltp_main.purchasing_sheet2
-                WHERE history_id = :history_id
-            """), {"history_id": history_id})
+            record.status = StatusEnum.APPROVED
 
-            self.db.execute(text("""
-                DELETE FROM oltp_main.purchasing_sheet3
-                WHERE history_id = :history_id
-            """), {"history_id": history_id})
-
-            # Insert sheet 1
-            self.db.execute(text(f"""
-                INSERT INTO oltp_main.purchasing_sheet1 (
-                    history_id,
-                    price_date,
-                    tex_us_no_1h_cfr_korea_domestic_cost,
-                    lme_usno_1_2_80_20_cfr_turkey_domestic_cost,
-                    local_price_usd,
-                    busheling_contract_usd,
-                    pns_contract_usd,
-                    hms_contract_usd,
-                    shr_contract_usd,
-                    local_price_idr,
-                    usd_rate,
-                    idr_rate,
-                    idr_usd_exchange_rate,
-                    us_no_1h_cfr_korea,
-                    lme_usno_1_2_80_20_cfr_turky,
-                    lme_usno_1_2_80_20_cfr_turkey,
-                    local_premium_idr_per_kg
+            for stg_table in [
+                self.stg_table_sheet1,
+                self.stg_table_sheet2,
+                self.stg_table_sheet3,
+            ]:
+                self.db.execute(
+                    text(f"DELETE FROM {stg_table} WHERE history_id = :h_id"),
+                    {"h_id": history_id},
                 )
-                SELECT
-                    history_id,
-                    price_date,
-                    tex_us_no_1h_cfr_korea_domestic_cost,
-                    lme_usno_1_2_80_20_cfr_turkey_domestic_cost,
-                    local_price_usd,
-                    busheling_contract_usd,
-                    pns_contract_usd,
-                    hms_contract_usd,
-                    shr_contract_usd,
-                    local_price_idr,
-                    usd_rate,
-                    idr_rate,
-                    idr_usd_exchange_rate,
-                    us_no_1h_cfr_korea,
-                    lme_usno_1_2_80_20_cfr_turky,
-                    lme_usno_1_2_80_20_cfr_turkey,
-                    local_premium_idr_per_kg
-                FROM {stg_sheet1}
-            """))
 
-            # Insert sheet 2
-            self.db.execute(text(f"""
-                INSERT INTO oltp_main.purchasing_sheet2 (
-                    history_id,
-                    variety,
-                    list_no,
-                    contract_date,
-                    supplier,
-                    origin,
-                    ton,
-                    price_usd_per_ton_cif,
-                    total_usd,
-                    grade,
-                    delivery_detail,
-                    delivery,
-                    actual_eta,
-                    delivery_remarks,
-                    avg_qty,
-                    avg_value,
-                    avg_price
-                )
-                SELECT
-                    history_id,
-                    variety,
-                    list_no,
-                    contract_date,
-                    supplier,
-                    origin,
-                    ton,
-                    price_usd_per_ton_cif,
-                    total_usd,
-                    grade,
-                    delivery_detail,
-                    delivery,
-                    actual_eta,
-                    delivery_remarks,
-                    avg_qty,
-                    avg_value,
-                    avg_price
-                FROM {stg_sheet2}
-            """))
-
-            # Insert sheet 3
-            self.db.execute(text(f"""
-                INSERT INTO oltp_main.purchasing_sheet3 (
-                    history_id,
-                    source_index,
-                    variety,
-                    detail,
-                    price_date,
-                    value
-                )
-                SELECT
-                    history_id,
-                    source_index,
-                    variety,
-                    detail,
-                    price_date,
-                    value
-                FROM {stg_sheet3}
-            """))
-
-            # Drop staging tables
-            self.db.execute(text(f"DROP TABLE IF EXISTS {stg_sheet1}"))
-            self.db.execute(text(f"DROP TABLE IF EXISTS {stg_sheet2}"))
-            self.db.execute(text(f"DROP TABLE IF EXISTS {stg_sheet3}"))
-
-            record.status = StatusEnum.PENDING
             self.db.commit()
 
-        except Exception as e:
-            self.db.rollback()
-            record.status = StatusEnum.FAILED
-            record.analysis_result = {
-                "error": "Gagal commit data Purchasing.",
-                "detail": str(e),
+            return {
+                "status": "success",
+                "message": "Data berhasil di-commit secara permanen.",
             }
-            self.db.commit()
-            raise e
-
-    def execute_cancel(self, history_id: int, filename: str):
-        stg_sheet1 = f"{self.stg_schema}.stg_purchasing_sheet1_upload_{history_id}"
-        stg_sheet2 = f"{self.stg_schema}.stg_purchasing_sheet2_upload_{history_id}"
-        stg_sheet3 = f"{self.stg_schema}.stg_purchasing_sheet3_upload_{history_id}"
-
-        try:
-            self.db.execute(text(f"DROP TABLE IF EXISTS {stg_sheet1}"))
-            self.db.execute(text(f"DROP TABLE IF EXISTS {stg_sheet2}"))
-            self.db.execute(text(f"DROP TABLE IF EXISTS {stg_sheet3}"))
-
-            record = self.db.query(History).filter(History.id == history_id).first()
-            if record:
-                record.status = StatusEnum.CANCELLED
-
-            self.db.commit()
 
         except Exception as e:
             self.db.rollback()
             raise e
+
+    # ==========================================
+    # HELPER: PINDAHKAN STAGING KE MAIN (UPSERT)
+    # ==========================================
+    def _move_staging_to_main_sheet3(
+        self, history_id: int, stg_table: str, main_table: str
+    ):
+        upsert_query = PurchasingQueries.insert_into_main_sheet3(stg_table, main_table)
+        self.db.execute(upsert_query, {"h_id": history_id})
+
+    def _move_staging_to_main_sheet2(
+        self, history_id: int, stg_table: str, main_table: str
+    ):
+        upsert_query = PurchasingQueries.insert_into_main_sheet2(stg_table, main_table)
+        self.db.execute(upsert_query, {"h_id": history_id})
+
+    def _move_staging_to_main_sheet1(
+        self, history_id: int, stg_table: str, main_table: str
+    ):
+        upsert_query = PurchasingQueries.insert_into_main_sheet1(stg_table, main_table)
+        self.db.execute(upsert_query, {"h_id": history_id})

@@ -9,6 +9,7 @@ from src.modules.transaction.schema import EditTransactionRequest
 from src.modules.transaction.repository import TransactionRepository
 from src.modules.transaction.service import TransactionService
 from src.models.models import Users, RoleEnum
+from src.modules.transaction.schema import FinanceTransactionUpdate
 
 router = APIRouter(
         prefix="/v1/transactions",
@@ -41,11 +42,11 @@ def get_department_transactions(
     
 
 @router.get("/purchasing")
-def get_department_transactions(
+def get_purchasing_transactions(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
     sheet : int = Query(1, ge=1, le=3),
-    user_now: Users = Depends(get_current_user),
+    # user_now: Users = Depends(get_current_user),
     service: TransactionService = Depends(get_transaction_service)
 ):
     
@@ -115,3 +116,42 @@ def get_finance_transactions_endpoint(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server: {e}")
+    
+
+@router.put("/finance/{id}")
+def update_finance_transaction_endpoint(
+    payload: FinanceTransactionUpdate,
+    id: int,
+    # userNow: Users = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    try:
+        result = service.update_transaction_amount(
+            transaction_id=id, 
+            amount=payload.value
+        )
+        return result
+    except ValueError as ve:
+        # Menangkap error jika ID tidak ditemukan (dari logic Service)
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        # Menangkap error sistem lainnya
+        # self.db.rollback() # Opsional, jaga-jaga jika ada transaksi nyangkut
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server: {str(e)}")
+
+
+# Endpoint DELETE
+@router.delete("/finance/{id}")
+def delete_finance_transaction_endpoint(
+    id: int,
+    # userNow: Users = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    try:
+        result = service.delete_transaction_record(transaction_id=id)
+        return result
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        # self.db.rollback()
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server: {str(e)}")

@@ -10,7 +10,8 @@ from src.modules.history.service import HistoryService
 from src.models.models import RoleEnum, StatusEnum, Users
 from src.infra.upload.service import UploadService
 from src.infra.upload.service import UploadService
-from src.core.dependencies import get_dept_service, get_history_service, get_minio_service, get_minio_service 
+from src.core.dependencies import get_dept_service, get_history_service, get_minio_service, get_minio_service, get_transaction_service
+from src.modules.transaction.service import TransactionService 
 
 router = APIRouter(
     prefix='/v1/uploads',
@@ -156,5 +157,33 @@ def confirm_upload(
         "status": "success", 
         "message": "Berhasil Melakukan Aksi"
     }
+
+
+from fastapi import Query, Path, Depends, HTTPException
+
+@router.get("/finance/{history_id}")
+def get_staging_finance_transactions_endpoint(
+    history_id: str,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    report_type: Optional[str] = Query(None, description="Filter tipe report, contoh: IS, BS"),
+    # userNow: Users = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    skip = (page - 1) * limit
+    
+    try:
+        result = service.get_staging_finance_transactions(
+            history_id=history_id,
+            skip=skip,
+            limit=limit,
+            report_type=report_type
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Terjadi kesalahan internal server saat mengambil data preview: {e}"
+        )
 
 

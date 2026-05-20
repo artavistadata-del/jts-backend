@@ -42,3 +42,8 @@ class TransactionPaginatedResponse(BaseModel):
     page: int
     size: int
     total_pages: int
+
+
+
+class FinanceTransactionUpdate(BaseModel) :
+    value : float
