@@ -165,3 +165,16 @@ class TransactionService:
                 "report_type": report_type
             }
         }
+
+
+    def wipe_all_transactions(self):
+        """Service berbahaya untuk mengosongkan tabel transaksi"""
+        deleted_count = self.repo.wipe_all_finance_transactions()
+        
+        return {
+            "success": True,
+            "message": f"DANGER ZONE: Seluruh isi tabel telah dikosongkan. Total {deleted_count} baris dihapus.",
+            "data": {
+                "deleted_count": deleted_count
+            }
+        }

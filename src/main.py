@@ -21,6 +21,7 @@ app = FastAPI(
 
 origins = [
     "http://localhost:5173",
+    "http://localhost:4174",
     "https://jts.adhibagus.com",
     "https://jts-dev.adhibagus.com",
 ]

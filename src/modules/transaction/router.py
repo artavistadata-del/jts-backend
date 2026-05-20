@@ -67,7 +67,22 @@ def get_purchasing_transactions(
     
 
 
-
+@router.delete("/finance/clear")
+def wipe_all_finance_transactions_endpoint(
+    userNow: Users = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    """
+    WARNING: Endpoint ini akan menghapus SELURUH data transaksi di Main Table Finance.
+    Pastikan hanya role Admin/Superadmin yang bisa mengakses ini!
+    """
+    try:
+        # Opsional: Jika Anda punya middleware role, pastikan userNow adalah Superadmin di sini
+        result = service.wipe_all_transactions()
+        return result
+    except Exception as e:
+        # self.db.rollback()
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal: {str(e)}")
 # ==========================================
 # UPDATE TRANSACTION [MANAGER ACCESS ]
 # ==========================================
@@ -155,3 +170,6 @@ def delete_finance_transaction_endpoint(
     except Exception as e:
         # self.db.rollback()
         raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server: {str(e)}")
+    
+
+

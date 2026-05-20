@@ -303,4 +303,9 @@ class TransactionRepository:
             
         return formatted_results, has_next
 
-    
+    def wipe_all_finance_transactions(self) -> int:
+        """MENGHAPUS SELURUH ISI TABEL TRANSAKSI!"""
+        deleted_count = self.db.query(Transactions).delete(synchronize_session=False)
+        
+        self.db.commit()
+        return deleted_count
