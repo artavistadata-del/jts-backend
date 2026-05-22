@@ -263,6 +263,10 @@ def _clean_sheet3(raw_bytes: BytesIO, history_id: int) -> pl.DataFrame:
         .alias("detail")
     )
 
+    df = df.with_columns(
+        pl.col('variety').str.replace_all(" ", "").str.to_uppercase()
+    )
+
     return df.select([
         "variety",
         "detail",

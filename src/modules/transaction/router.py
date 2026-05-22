@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 from fastapi import Query, Depends, APIRouter, HTTPException
 from src.core.security import get_current_user
 from src.core.dependencies import get_db, get_transaction_service # Asumsi kamu punya dependency ini
@@ -112,21 +112,67 @@ def edit_single_transaction(
 
 
 
+# @router.get("/finance")
+# def get_finance_transactions_endpoint(
+#     page: int = Query(1, ge=1),
+#     limit: int = Query(50, ge=1, le=100),
+#     report_type: Optional[str] = Query(None, description="Filter tipe report, contoh: IS, BS"),
+#     # userNow: Users = Depends(get_current_user),
+#     service: TransactionService = Depends(get_transaction_service)
+# ):
+#     skip = (page - 1) * limit
+    
+#     try:
+#         result = service.get_finance_transactions(
+#             skip=skip,
+#             limit=limit,
+#             report_type=report_type
+#         )
+#         return result
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server: {e}")
+
+@router.get("/finance/options")
+def get_finance_options_endpoint(
+    # userNow: Users = Depends(get_current_user),
+    service: TransactionService = Depends(get_transaction_service)
+):
+    """
+    Endpoint khusus untuk mengisi dropdown filter di Frontend (Tahun & Kategori).
+    """
+    try:
+        result = service.get_filter_options()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal server: {e}")
+
+
 @router.get("/finance")
 def get_finance_transactions_endpoint(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
     report_type: Optional[str] = Query(None, description="Filter tipe report, contoh: IS, BS"),
-    # userNow: Users = Depends(get_current_user),
+    year: Optional[List[int]] = Query(None, description="Filter tahun (bisa banyak)"),
+    month: Optional[List[int]] = Query(None, description="Filter bulan (bisa banyak)"),
+    
+    # UBAH: Kategori sekarang berupa List[str]
+    category: Optional[List[str]] = Query(None, description="Filter kategori (bisa banyak), contoh: ?category=HPP&category=Kas"),
+    
+    search: Optional[str] = Query(None, description="Cari nama kategori menggunakan teks bebas (LIKE)"),
+    
+    # UBAH: Info opsi sorting yang baru
+    sort_by: str = Query("year", description="Kolom sorting HANYA ADA 3: year, month, category"),
+    sort_order: str = Query("desc", regex="^(asc|desc)$", description="Arah sorting: asc atau desc"),
+    
     service: TransactionService = Depends(get_transaction_service)
 ):
     skip = (page - 1) * limit
     
     try:
         result = service.get_finance_transactions(
-            skip=skip,
-            limit=limit,
-            report_type=report_type
+            skip=skip, limit=limit, report_type=report_type,
+            years=year, months=month, categories=category, # Teruskan ke service
+            search=search, sort_by=sort_by, sort_order=sort_order
         )
         return result
     except Exception as e:

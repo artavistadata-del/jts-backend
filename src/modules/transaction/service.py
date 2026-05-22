@@ -1,3 +1,5 @@
+from typing import List
+
 from src.models.models import PurchasingSheet1, PurchasingSheet2, PurchasingSheet3, RoleEnum
 from src.modules.history.service import HistoryService
 from src.modules.transaction.repository import TransactionRepository
@@ -83,29 +85,63 @@ class TransactionService:
     # ==========================================
     # GET ALL FINANCE TRANSACTIONS
     # ==========================================
-    def get_finance_transactions(self, skip: int, limit: int, report_type: str = None):
-        """
-        Service khusus untuk menarik data Finance dengan optimasi kolom (tanpa SELECT *)
-        serta filter opsional berdasarkan IS / BS.
-        """
+    # def get_finance_transactions(self, skip: int, limit: int, report_type: str = None):
+    #     """
+    #     Service khusus untuk menarik data Finance dengan optimasi kolom (tanpa SELECT *)
+    #     serta filter opsional berdasarkan IS / BS.
+    #     """
+    #     results, has_next = self.repo.get_all_finance_data(
+    #         skip=skip, 
+    #         limit=limit, 
+    #         report_type=report_type
+    #     )
+
+    #     return {
+    #         "data": results,
+    #         "pagination": {
+    #             "skip": skip,
+    #             "limit": limit,
+    #             "has_next_page": has_next
+    #         },
+    #         "metadata": {
+    #             "report_type": report_type
+    #         }
+    #     }
+    
+    def get_finance_transactions(
+        self, skip: int, limit: int, report_type: str = None,
+        years: List[int] = None, months: List[int] = None, categories: List[str] = None,
+        search: str = None, sort_by: str = "year", sort_order: str = "desc"
+    ):
         results, has_next = self.repo.get_all_finance_data(
-            skip=skip, 
-            limit=limit, 
-            report_type=report_type
+            skip=skip, limit=limit, report_type=report_type,
+            years=years, months=months, categories=categories,
+            search=search, sort_by=sort_by, sort_order=sort_order
         )
 
         return {
+            "success": True,
+            "message": "Data transaksi finance berhasil diambil",
             "data": results,
-            "pagination": {
-                "skip": skip,
-                "limit": limit,
-                "has_next_page": has_next
-            },
-            "metadata": {
-                "report_type": report_type
+            "meta": {
+                "pagination": {
+                    "skip": skip,
+                    "limit": limit,
+                    "has_next_page": has_next
+                },
+                "filters": {
+                    "report_type": report_type,
+                    "years": years,
+                    "months": months,
+                    "categories": categories,
+                    "search_category": search
+                },
+                "sorting": {
+                    "sort_by": sort_by,
+                    "sort_order": sort_order
+                }
             }
         }
-    
 
 
     def update_transaction_amount(self, transaction_id: int, amount: float):
@@ -177,4 +213,15 @@ class TransactionService:
             "data": {
                 "deleted_count": deleted_count
             }
+        }
+    
+
+    def get_filter_options(self):
+        """Service untuk mendapatkan list dropdown filter"""
+        options = self.repo.get_finance_filter_options()
+
+        return {
+            "success": True,
+            "message": "Opsi filter berhasil diambil",
+            "data": options
         }

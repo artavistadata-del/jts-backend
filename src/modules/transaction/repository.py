@@ -1,6 +1,9 @@
+from typing import List, Optional
+
 from sqlalchemy.orm import Session
 from src.models.models import History, StatusEnum
 from src.models.stg_table import FinanceTransactions
+from sqlalchemy import extract, asc, desc
 from src.models.finance import Transactions, t_vw_transaction_rule_lookup
 # from src.models.models import FinanceSheets, FinanceTransactionRules, FinanceTransactions
 
@@ -9,58 +12,8 @@ class TransactionRepository:
         self.db = db
 
     # ==========================================
-    # GET transaction [MANAGER & USER ACCESS ]
-    # ==========================================
-    def get_paginated_transactions(self, model_class, skip: int, limit: int, user_id_filter: int = None, report_type: str = None):
-        # 1. Join tabel Fact (contoh: FactFinance) dengan History
-        query = self.db.query(model_class).join(
-            History, model_class.history_id == History.id
-        )
-
-        # 2. Jika ada nik_filter (berarti dia Staff), saring datanya
-        if user_id_filter:
-            query = query.filter(History.user_id == user_id_filter)
-
-        # 3. Saring berdasarkan report_type (IS / BS) jika parameter dikirim
-        # Gunakan hasattr untuk mencegah error pada model departemen lain yang mungkin tidak punya kolom report_type
-        if report_type and hasattr(model_class, 'report_type'):
-            query = query.filter(model_class.report_type == report_type)
-
-        # 4. Hitung total untuk pagination
-        total_count = query.count()
-
-        # 5. Ambil data dengan offset & limit
-        results = query.order_by(model_class.id.desc())\
-                       .offset(skip)\
-                       .limit(limit)\
-                       .all()
-                       
-        return results, total_count
-
-    # ==========================================
     # UPDATE SINGLE ROW [MANAGER ACCESS ]
     # ==========================================
-    def update_single_row(self, model_class, id_fact: int, new_value: float, manager_nik: str):
-        # Cari data berdasarkan ID tabel fact yang dilempar
-        row = self.db.query(model_class).get(id_fact)
-        
-        if not row:
-            raise ValueError("Data tidak ditemukan di database.")
-            
-        # Pengecekan relasi ke History (harus PENDING)
-        if row.history.status != StatusEnum.PENDING:
-            raise ValueError("Hanya data berstatus PENDING yang bisa dikoreksi.")
-
-        # # Logic Audit Trail
-        # if not row.is_edited:
-        #     row.original_value = row.value # Simpan data asli Excel
-            
-        row.value = new_value
-        # row.is_edited = True
-        # row.edited_by = manager_nik
-        
-        self.db.commit()
-        return row
 
     # ==========================================
     # GET ALL PURCHASING TRANSACTIONS (NO COUNT)
@@ -88,77 +41,22 @@ class TransactionRepository:
     # ==========================================
     # GET ALL FINANCE TRANSACTIONS (NO SELECT *)
     # ==========================================
-    # def get_all_finance_data(self, skip: int, limit: int, report_type: str = None):
-    
-    #     fetch_limit = limit + 1
-        
-    #     query = self.db.query(
-    #         FinanceTransactions.id,
-    #         FinanceTransactions.history_id,
-    #         FinanceTransactions.rule_id,
-    #         FinanceTransactions.period_month,
-    #         FinanceTransactions.amount,
-    #         t_vw_finance_transaction_rule_lookup.c.sheet_name,
-    #         t_vw_finance_transaction_rule_lookup.c.category_name,
-    #         t_vw_finance_transaction_rule_lookup.c.sub_category_name,
-    #         t_vw_finance_transaction_rule_lookup.c.sub_sub_category_name,
-    #         t_vw_finance_transaction_rule_lookup.c.account_name,
-    #         t_vw_finance_transaction_rule_lookup.c.actual_budget
-    #     ).join(
-    #         t_vw_finance_transaction_rule_lookup, 
-    #         FinanceTransactions.rule_id == t_vw_finance_transaction_rule_lookup.c.rule_id
-    #     )
-        
-    #     if report_type:
-    #         query = query.filter(
-    #             t_vw_finance_transaction_rule_lookup.c.sheet_name == report_type
-    #         )
-            
-    #     results = (
-    #         query.order_by(FinanceTransactions.id.desc())
-    #         .offset(skip)
-    #         .limit(fetch_limit)
-    #         .all()
-    #     )
-        
-    #     has_next = len(results) > limit
-        
-    #     if has_next:
-    #         results = results[:-1]
-
-    #     # 4. FORMAT HASIL KE DICTIONARY
-    #     # Semua deskripsi huruf sekarang akan ikut terkirim ke frontend
-    #     formatted_results = [
-    #         {
-    #             # "id": r.id,
-    #             # "history_id": r.history_id,
-    #             # "rule_id": r.rule_id,
-    #             "period_month": r.period_month,
-    #             "amount": float(r.amount),
-    #             "sheet_name": r.sheet_name,
-    #             "category_name": r.category_name,
-    #             "sub_category_name": r.sub_category_name,
-    #             "sub_sub_category_name": r.sub_sub_category_name,
-    #             "account_name": r.account_name,
-    #             "actual_budget": r.actual_budget,
-    #             # "last_modified" : r.updated_at
-    #         }
-    #         for r in results
-    #     ]
-            
-    #     return formatted_results, has_next
-
-
-
-    def get_all_finance_data(self, skip: int, limit: int, report_type: str = None):
-        
+    def get_all_finance_data(
+        self, 
+        skip: int, 
+        limit: int, 
+        report_type: str = None, 
+        years: Optional[List[int]] = None,   
+        months: Optional[List[int]] = None,  
+        categories: Optional[List[str]] = None, # UBAH: Jadi List[str]
+        search: str = None,        
+        sort_by: str = "year",                  # UBAH: Default jadi year
+        sort_order: str = "desc"   
+    ):
         fetch_limit = limit + 1
         
-        # PENYESUAIAN: Menggunakan 'Transactions' dan 't_vw_transaction_rule_lookup'
         query = self.db.query(
             Transactions.id,
-            Transactions.history_id,
-            Transactions.rule_id,
             Transactions.period_month,
             Transactions.amount,
             t_vw_transaction_rule_lookup.c.sheet_name,
@@ -172,29 +70,47 @@ class TransactionRepository:
             Transactions.rule_id == t_vw_transaction_rule_lookup.c.rule_id
         )
         
+        # --- BLOK SEARCH & FILTER ---
+        if search:
+            query = query.filter(t_vw_transaction_rule_lookup.c.category_name.ilike(f"%{search}%"))
         if report_type:
-            query = query.filter(
-                t_vw_transaction_rule_lookup.c.sheet_name == report_type
-            )
+            query = query.filter(t_vw_transaction_rule_lookup.c.sheet_name == report_type)
             
-        results = (
-            query.order_by(Transactions.id.desc())
-            .offset(skip)
-            .limit(fetch_limit)
-            .all()
-        )
+        if years: 
+            query = query.filter(extract('year', Transactions.period_month).in_(years))
+        if months: 
+            query = query.filter(extract('month', Transactions.period_month).in_(months))
+            
+        # TAMBAHAN: Filter banyak kategori menggunakan .in_()
+        if categories:
+            query = query.filter(t_vw_transaction_rule_lookup.c.category_name.in_(categories))
+        # ----------------------------
+
+        # --- BLOK SORTING BARU ---
+        # Hanya ada year, month, dan category
+        sort_column_map = {
+            "year": extract('year', Transactions.period_month),
+            "month": extract('month', Transactions.period_month),
+            "category": t_vw_transaction_rule_lookup.c.category_name
+        }
+        
+        order_column = sort_column_map.get(sort_by, extract('year', Transactions.period_month))
+        
+        if sort_order.lower() == "asc":
+            query = query.order_by(asc(order_column))
+        else:
+            query = query.order_by(desc(order_column))
+        # -------------------------
+            
+        results = query.offset(skip).limit(fetch_limit).all()
         
         has_next = len(results) > limit
-        
         if has_next:
             results = results[:-1]
 
-        # 4. FORMAT HASIL KE DICTIONARY
         formatted_results = [
             {
                 "id": r.id,
-                # "history_id": r.history_id,
-                # "rule_id": r.rule_id,
                 "period_month": r.period_month,
                 "value": float(r.amount),
                 "sheet_name": r.sheet_name,
@@ -203,7 +119,6 @@ class TransactionRepository:
                 "sub_sub_category_name": r.sub_sub_category_name,
                 "account_name": r.account_name,
                 "actual_budget": r.actual_budget,
-                # "last_modified" : r.updated_at
             }
             for r in results
         ]
@@ -309,3 +224,52 @@ class TransactionRepository:
         
         self.db.commit()
         return deleted_count
+    
+
+    def get_finance_filter_options(self):
+        """Mengambil data unik untuk dropdown filter di Frontend"""
+        
+        # 1. Ambil Tahun Unik
+        years_query = self.db.query(
+            extract('year', Transactions.period_month)
+        ).distinct().order_by(
+            desc(extract('year', Transactions.period_month))
+        ).all()
+        available_years = [int(y[0]) for y in years_query if y[0] is not None]
+
+        # 2. Ambil Bulan Unik (Berdasarkan data yang ada di database)
+        months_query = self.db.query(
+            extract('month', Transactions.period_month)
+        ).distinct().order_by(
+            asc(extract('month', Transactions.period_month)) # Urutkan dari Jan ke Des
+        ).all()
+        
+        # Mapping Angka ke Nama Bulan
+        month_names = {
+            1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
+            5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
+            9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+        }
+        
+        # Format ke bentuk Dictionary List (sangat disukai Frontend)
+        available_months = [
+            {
+                "value": int(m[0]), 
+                "label": month_names.get(int(m[0]), str(int(m[0]))) # Terjemahkan
+            } 
+            for m in months_query if m[0] is not None
+        ]
+
+        # 3. Ambil Kategori Unik
+        categories_query = self.db.query(
+            t_vw_transaction_rule_lookup.c.category_name
+        ).distinct().order_by(
+            asc(t_vw_transaction_rule_lookup.c.category_name)
+        ).all()
+        available_categories = [c[0] for c in categories_query if c[0] is not None]
+
+        return {
+            "years": available_years,
+            "months": available_months, # TAMBAHAN
+            "categories": available_categories
+        }

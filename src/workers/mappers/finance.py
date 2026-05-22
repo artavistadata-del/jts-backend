@@ -101,4 +101,5 @@ class FinanceMapper:
             pl.col("amount"),
         ])
 
+
         return df_staging

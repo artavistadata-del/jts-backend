@@ -31,6 +31,8 @@ class FinanceService(AbstractCleaningService):
             # 1. Extract & Clean Data Mentah
             df_excel = self._download_and_clean(history_id, filename, self.id_dept, process_finance_excel)
             total_row_excel = df_excel.height
+            # print("=== PREVIEW DF EXCEL ===")
+            # print(df_excel.filter(pl.col('account_name') == 'FLATBAR'))
 
             # 2. Get Rules dari Database & Siapkan Mapper
             rule_query = FinanceQueries.get_rule_lookup(self.rule_lookup_view)
@@ -39,7 +41,8 @@ class FinanceService(AbstractCleaningService):
 
             # 3. Transform / Mapping Data
             df_staging = FinanceMapper.map_to_staging(df_excel, df_rule_clean, self.join_cols, history_id)
-
+            # print("=== PREVIEW DF STAGING ===")
+            # print(df_staging.head())
             # 4. Load ke Staging Table
             self._push_staging_to_db(df_staging, history_id, self.stg_table)
 
