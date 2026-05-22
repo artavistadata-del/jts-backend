@@ -81,7 +81,6 @@ class TransactionRepository:
         if months: 
             query = query.filter(extract('month', Transactions.period_month).in_(months))
             
-        # TAMBAHAN: Filter banyak kategori menggunakan .in_()
         if categories:
             query = query.filter(t_vw_transaction_rule_lookup.c.category_name.in_(categories))
         # ----------------------------
