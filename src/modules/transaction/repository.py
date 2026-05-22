@@ -86,7 +86,6 @@ class TransactionRepository:
         # ----------------------------
 
         # --- BLOK SORTING BARU ---
-        # Hanya ada year, month, dan category
         sort_column_map = {
             "year": extract('year', Transactions.period_month),
             "month": extract('month', Transactions.period_month),
