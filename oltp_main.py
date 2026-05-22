@@ -7,8 +7,10 @@ from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Double, Enum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-class Base(DeclarativeBase):
-    pass
+# class Base(DeclarativeBase):
+#     pass
+
+from src.core.database import Base
 
 
 class ActualBudgetEnum(str, enum.Enum):

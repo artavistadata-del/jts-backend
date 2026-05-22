@@ -6,8 +6,7 @@ from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Enum, Foreig
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-class Base(DeclarativeBase):
-    pass
+from src.core.database import Base
 
 
 class RoleEnum(str, enum.Enum):
@@ -175,32 +174,32 @@ t_vw_sheet3_rules = Table(
 )
 
 
-class Users(Base):
-    __tablename__ = 'users'
-    __table_args__ = (
-        ForeignKeyConstraint(['department_id'], ['oltp_main.departments.id'], name='users_id_dept_fkey'),
-        ForeignKeyConstraint(['role_id'], ['oltp_main.roles.id'], name='users_id_roles_fkey'),
-        PrimaryKeyConstraint('id', name='users_pkey'),
-        Index('ix_oltp_main_users_id_dept', 'department_id'),
-        Index('ix_oltp_main_users_id_roles', 'role_id'),
-        Index('ix_oltp_main_users_nik_active', 'nik', postgresql_where='(deleted_at IS NULL)', unique=True),
-        Index('ix_users_public_id', 'public_id', unique=True),
-        {'schema': 'oltp_main'}
-    )
+# class Users(Base):
+#     __tablename__ = 'users'
+#     __table_args__ = (
+#         ForeignKeyConstraint(['department_id'], ['oltp_main.departments.id'], name='users_id_dept_fkey'),
+#         ForeignKeyConstraint(['role_id'], ['oltp_main.roles.id'], name='users_id_roles_fkey'),
+#         PrimaryKeyConstraint('id', name='users_pkey'),
+#         Index('ix_oltp_main_users_id_dept', 'department_id'),
+#         Index('ix_oltp_main_users_id_roles', 'role_id'),
+#         Index('ix_oltp_main_users_nik_active', 'nik', postgresql_where='(deleted_at IS NULL)', unique=True),
+#         Index('ix_users_public_id', 'public_id', unique=True),
+#         {'schema': 'oltp_main'}
+#     )
 
-    id: Mapped[int] = mapped_column(Integer, Sequence('users_idusers_seq', schema='oltp_main'), primary_key=True)
-    nik: Mapped[str] = mapped_column(String(16), nullable=False)
-    role_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    department_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
-    password: Mapped[Optional[str]] = mapped_column(String(255))
-    public_id: Mapped[Optional[str]] = mapped_column(String(22))
-    deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
+#     id: Mapped[int] = mapped_column(Integer, Sequence('users_idusers_seq', schema='oltp_main'), primary_key=True)
+#     nik: Mapped[str] = mapped_column(String(16), nullable=False)
+#     role_id: Mapped[int] = mapped_column(Integer, nullable=False)
+#     department_id: Mapped[int] = mapped_column(Integer, nullable=False)
+#     name: Mapped[str] = mapped_column(String(255), nullable=False)
+#     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
+#     password: Mapped[Optional[str]] = mapped_column(String(255))
+#     public_id: Mapped[Optional[str]] = mapped_column(String(22))
+#     deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
 
-    department: Mapped['Departments'] = relationship('Departments', back_populates='users')
-    role: Mapped['Roles'] = relationship('Roles', back_populates='users')
-    history: Mapped[list['History']] = relationship('History', back_populates='user')
+#     department: Mapped['Departments'] = relationship('Departments', back_populates='users')
+#     role: Mapped['Roles'] = relationship('Roles', back_populates='users')
+#     history: Mapped[list['History']] = relationship('History', back_populates='user')
 
 
 class Sheet3TransactionRules(Base):
@@ -222,42 +221,6 @@ class Sheet3TransactionRules(Base):
     detail: Mapped['Details'] = relationship('Details', back_populates='sheet3_transaction_rules')
     variety: Mapped['Varieties'] = relationship('Varieties', back_populates='sheet3_transaction_rules')
     sheet3_transactions: Mapped[list['Sheet3Transactions']] = relationship('Sheet3Transactions', back_populates='rule')
-
-
-class History(Base):
-    __tablename__ = 'history'
-    __table_args__ = (
-        ForeignKeyConstraint(['department_id'], ['oltp_main.departments.id'], name='history_upload_id_dept_fkey'),
-        ForeignKeyConstraint(['role_id'], ['oltp_main.roles.id'], name='history_upload_id_roles_fkey'),
-        ForeignKeyConstraint(['user_id'], ['oltp_main.users.id'], name='history_upload_id_users_fkey'),
-        PrimaryKeyConstraint('id', name='history_upload_pkey'),
-        UniqueConstraint('public_id', name='history_public_id_unique'),
-        Index('ix_history_public_id', 'public_id', unique=True),
-        Index('ix_history_upload_public_id', 'public_id'),
-        Index('ix_oltp_main_history_upload_id_dept', 'department_id'),
-        Index('ix_oltp_main_history_upload_id_roles', 'role_id'),
-        Index('ix_oltp_main_history_upload_id_users', 'user_id'),
-        {'schema': 'oltp_main'}
-    )
-
-    id: Mapped[int] = mapped_column(Integer, Sequence('history_upload_id_history_upload_seq', schema='oltp_main'), primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    role_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    department_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    time_stamp: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'))
-    status: Mapped[StatusEnum] = mapped_column(Enum(StatusEnum, values_callable=lambda cls: [member.value for member in cls], name='status_enum', schema='oltp_main'), nullable=False)
-    analysis_result: Mapped[Optional[dict]] = mapped_column(JSONB)
-    file_name_storage: Mapped[Optional[str]] = mapped_column(String(255))
-    note: Mapped[Optional[str]] = mapped_column(Text)
-    public_id: Mapped[Optional[str]] = mapped_column(String(22))
-
-    department: Mapped['Departments'] = relationship('Departments', back_populates='history')
-    role: Mapped['Roles'] = relationship('Roles', back_populates='history')
-    user: Mapped['Users'] = relationship('Users', back_populates='history')
-    sheet1_transactions: Mapped[list['Sheet1Transactions']] = relationship('Sheet1Transactions', back_populates='history')
-    sheet2_transactions: Mapped[list['Sheet2Transactions']] = relationship('Sheet2Transactions', back_populates='history')
-    sheet3_transactions: Mapped[list['Sheet3Transactions']] = relationship('Sheet3Transactions', back_populates='history')
 
 
 class Sheet1Transactions(Base):
