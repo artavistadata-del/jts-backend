@@ -268,6 +268,6 @@ class TransactionRepository:
 
         return {
             "years": available_years,
-            "months": available_months, # TAMBAHAN
+            "months": available_months,
             "categories": available_categories  
         }
