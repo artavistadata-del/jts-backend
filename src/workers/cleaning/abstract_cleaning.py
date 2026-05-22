@@ -1,10 +1,6 @@
 import io
 import polars as pl
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert
 from src.infra.upload.client import minio_client
-from src.core.database import engine 
-from src.models.models import History, StatusEnum
 from src.modules.departments.registry import get_dept_config 
 from abc import ABC, abstractmethod
 
@@ -25,31 +21,6 @@ class AbstractCleaningService(ABC):
         response.release_conn()
 
         return cleanser_func(raw_bytes, history_id)
-    
-
-    def _pull_data(self, history_id: int, filename: str):
-        """
-        Menjalankan pull data dari category table master.
-        
-        Proses meliputi pull semua category data yang nantinya digunakan untuk mapping sebelum insert ke database.
-        """
-        pass
-
-    def _mapping_data(self, history_id: int, filename: str):
-        """
-        Menjalankan mapping dari hasil pull data
-        
-        Proses meliputi mapping dataframe berdasarkan pull data.
-        """
-        pass
-
-    def _push_data(self, history_id: int, filename: str):
-        """
-        Menjalankan push data dari hasil mapping
-        
-        Proses meliputi push data hasil mapping ke staging table.
-        """
-        pass
     
     @abstractmethod
     def execute_analyze(self, history_id: int, filename: str):
