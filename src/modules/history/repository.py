@@ -51,14 +51,11 @@ class HistoryRepository :
         
         # 2. Terapkan filter berdasarkan Role
         if role_name == RoleEnum.MANAGER or role_name == RoleEnum.DIREKTUR:
-            # Manager/Direktur: Lihat semua data di departemennya
             query = query.filter(History.department_id == id_dept)
                      
         else:
-            # Staff (Default): Hanya melihat transaksinya sendiri
             query = query.filter(History.user_id == id_users)
 
-        # 3. Hitung total dan eksekusi pagination
         total_count = query.count()
         results = (
             query.order_by(History.id.desc())
@@ -67,7 +64,6 @@ class HistoryRepository :
             .all()
         )
         
-        # 4. FORMAT ULANG DATA AGAR AMAN DI-JSON-KAN OLEH FASTAPI
         formatted_results = []
         for row in results:
             history_obj = row[0] # Objek History

@@ -10,7 +10,7 @@ from src.workers.mappers.finance import FinanceMapper
 class FinanceService(AbstractCleaningService):
     def __init__(self, db_session):
         super().__init__(db_session)
-        self.id_dept = 1
+        self.department_name = 'FINANCE'
         self.main_table = "oltp_finance.transactions"
         self.stg_table = "stg_table.finance_transactions"
         self.rule_lookup_view = "oltp_finance.vw_transaction_rule_lookup"
@@ -29,7 +29,7 @@ class FinanceService(AbstractCleaningService):
 
         try:
             # 1. Extract & Clean Data Mentah
-            df_excel = self._download_and_clean(history_id, filename, self.id_dept, process_finance_excel)
+            df_excel = self._download_and_clean(history_id, filename, self.department_name, process_finance_excel)
             total_row_excel = df_excel.height
 
             # 2. Get Rules dari Database & Siapkan Mapper

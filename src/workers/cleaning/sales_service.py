@@ -10,7 +10,7 @@ from src.workers.mappers.sales import SalesMapper
 class SalesService(AbstractCleaningService):
     def __init__(self, db_session):
         super().__init__(db_session)
-        self.id_dept = 2 
+        self.department_name = 'SALES'
         self.stg_table = "stg_table.sales_transactions"
 
     # ==========================================
@@ -24,7 +24,7 @@ class SalesService(AbstractCleaningService):
 
         try:
             # --- MULAI PROSES ETL ---
-            df_excel = self._download_and_clean(history_id, filename, self.id_dept, process_sales_excel)
+            df_excel = self._download_and_clean(history_id, filename, self.department_name, process_sales_excel)
             
         
             df_height = df_excel.height

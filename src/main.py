@@ -3,8 +3,15 @@ from src.core.database import engine
 from src.modules.departments import route as dept_router
 from src.modules.history import route as history_router
 from src.models import models 
+from src.models import stg_table
+from src.modules.transaction.finance import models
+from src.modules.transaction.purchasing import models
+from src.modules.transaction.sales import models
+
+
 from src.infra.powerbi import route as powerbi_router
-from src.modules.transaction import router as transaction_router
+from src.modules.transaction.finance import route as finance_transaction_router
+from src.modules.transaction.purchasing import route as purchasing_transaction_router
 from src.modules.users import route as users_router
 from src.modules.roles import route as roles_router
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,7 +44,8 @@ app.add_middleware(
 app.include_router(dept_router.router)
 app.include_router(history_router.router)
 app.include_router(powerbi_router.router)
-app.include_router(transaction_router.router)
+app.include_router(finance_transaction_router.router)
+app.include_router(purchasing_transaction_router.router)
 app.include_router(users_router.router)
 app.include_router(roles_router.router)
 app.include_router(upload_router.router)

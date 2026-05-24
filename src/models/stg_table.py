@@ -6,9 +6,7 @@ import enum
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, REAL, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
-class Base(DeclarativeBase):
-    pass
+from src.core.database import Base
 
 
 class ActualBudgetEnum(str, enum.Enum):
@@ -40,340 +38,8 @@ class StatusEnum(str, enum.Enum):
     CANCELLED = 'CANCELLED'
 
 
-class AccountNames(Base):
-    __tablename__ = 'account_names'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_finance_account_names'),
-        UniqueConstraint('account_name', name='uq_finance_account_names_account_name'),
-        {'schema': 'oltp_finance'}
-    )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    account_name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    transaction_rules: Mapped[list['TransactionRules']] = relationship('TransactionRules', back_populates='account_name')
-
-
-class Categories(Base):
-    __tablename__ = 'categories'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_finance_categories'),
-        UniqueConstraint('name', name='uq_finance_categories_name'),
-        {'schema': 'oltp_finance'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    transaction_rules: Mapped[list['TransactionRules']] = relationship('TransactionRules', back_populates='category')
-
-
-class Sheets(Base):
-    __tablename__ = 'sheets'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_finance_sheets'),
-        UniqueConstraint('name', name='uq_finance_sheets_name'),
-        {'schema': 'oltp_finance'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    transaction_rules: Mapped[list['TransactionRules']] = relationship('TransactionRules', back_populates='sheet')
-
-
-class SubCategories(Base):
-    __tablename__ = 'sub_categories'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_finance_sub_categories'),
-        UniqueConstraint('name', name='uq_finance_sub_categories_name'),
-        {'schema': 'oltp_finance'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    transaction_rules: Mapped[list['TransactionRules']] = relationship('TransactionRules', back_populates='sub_category')
-
-
-class SubSubCategories(Base):
-    __tablename__ = 'sub_sub_categories'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_finance_sub_sub_categories'),
-        UniqueConstraint('name', name='uq_finance_sub_sub_categories_name'),
-        {'schema': 'oltp_finance'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    is_placeholder: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    transaction_rules: Mapped[list['TransactionRules']] = relationship('TransactionRules', back_populates='sub_sub_category')
-
-
-class Departments(Base):
-    __tablename__ = 'departments'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='departments_pkey'),
-        Index('ix_departments_public_id', 'public_id', unique=True),
-        Index('ix_oltp_main_departments_public_id', 'public_id', unique=True),
-        {'schema': 'oltp_main'}
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[Optional[str]] = mapped_column(String(45))
-    public_id: Mapped[Optional[str]] = mapped_column(String(22))
-
-    users: Mapped[list['Users']] = relationship('Users', back_populates='department')
-    history: Mapped[list['History']] = relationship('History', back_populates='department')
-
-
-class Roles(Base):
-    __tablename__ = 'roles'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='roles_pkey'),
-        Index('ix_oltp_main_roles_public_id', 'public_id', unique=True),
-        Index('ix_roles_public_id', 'public_id', unique=True),
-        {'schema': 'oltp_main'}
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[Optional[RoleEnum]] = mapped_column(Enum(RoleEnum, values_callable=lambda cls: [member.value for member in cls], name='role_enum', schema='oltp_main'))
-    public_id: Mapped[Optional[str]] = mapped_column(String(22))
-
-    users: Mapped[list['Users']] = relationship('Users', back_populates='role')
-    history: Mapped[list['History']] = relationship('History', back_populates='role')
-
-
-class DeliveryDetails(Base):
-    __tablename__ = 'delivery_details'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_purchasing_delivery_details'),
-        UniqueConstraint('name', name='uq_purchasing_delivery_details_name'),
-        {'schema': 'oltp_purchasing'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    purchasing_sheet2_transactions: Mapped[list['PurchasingSheet2Transactions']] = relationship('PurchasingSheet2Transactions', back_populates='delivery_detail')
-
-
-class Details(Base):
-    __tablename__ = 'details'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_purchasing_details'),
-        UniqueConstraint('name', name='uq_purchasing_details_name'),
-        {'schema': 'oltp_purchasing'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    sheet3_transaction_rules: Mapped[list['Sheet3TransactionRules']] = relationship('Sheet3TransactionRules', back_populates='detail')
-
-
-class Grades(Base):
-    __tablename__ = 'grades'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_purchasing_grades'),
-        UniqueConstraint('name', name='uq_purchasing_grades_name'),
-        {'schema': 'oltp_purchasing'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    purchasing_sheet2_transactions: Mapped[list['PurchasingSheet2Transactions']] = relationship('PurchasingSheet2Transactions', back_populates='grade')
-
-
-class Origins(Base):
-    __tablename__ = 'origins'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_purchasing_origins'),
-        UniqueConstraint('name', name='uq_purchasing_origins_name'),
-        {'schema': 'oltp_purchasing'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    purchasing_sheet2_transactions: Mapped[list['PurchasingSheet2Transactions']] = relationship('PurchasingSheet2Transactions', back_populates='origin')
-
-
-class Suppliers(Base):
-    __tablename__ = 'suppliers'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_purchasing_suppliers'),
-        UniqueConstraint('name', name='uq_purchasing_suppliers_name'),
-        {'schema': 'oltp_purchasing'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    purchasing_sheet2_transactions: Mapped[list['PurchasingSheet2Transactions']] = relationship('PurchasingSheet2Transactions', back_populates='supplier')
-
-
-class Varieties(Base):
-    __tablename__ = 'varieties'
-    __table_args__ = (
-        PrimaryKeyConstraint('id', name='pk_purchasing_varieties'),
-        UniqueConstraint('name', name='uq_purchasing_varieties_name'),
-        {'schema': 'oltp_purchasing'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    sheet3_transaction_rules: Mapped[list['Sheet3TransactionRules']] = relationship('Sheet3TransactionRules', back_populates='variety')
-    purchasing_sheet2_transactions: Mapped[list['PurchasingSheet2Transactions']] = relationship('PurchasingSheet2Transactions', back_populates='variety')
-
-
-class TransactionRules(Base):
-    __tablename__ = 'transaction_rules'
-    __table_args__ = (
-        ForeignKeyConstraint(['account_name_id'], ['oltp_finance.account_names.id'], name='fk_finance_transaction_rules_account_name'),
-        ForeignKeyConstraint(['category_id'], ['oltp_finance.categories.id'], name='fk_finance_transaction_rules_category'),
-        ForeignKeyConstraint(['sheet_id'], ['oltp_finance.sheets.id'], name='fk_finance_transaction_rules_sheet'),
-        ForeignKeyConstraint(['sub_category_id'], ['oltp_finance.sub_categories.id'], name='fk_finance_transaction_rules_sub_category'),
-        ForeignKeyConstraint(['sub_sub_category_id'], ['oltp_finance.sub_sub_categories.id'], name='fk_finance_transaction_rules_sub_sub_category'),
-        PrimaryKeyConstraint('id', name='pk_finance_transaction_rules'),
-        UniqueConstraint('sheet_id', 'category_id', 'sub_category_id', 'sub_sub_category_id', 'account_name_id', 'actual_budget', name='uq_finance_transaction_rules_combo'),
-        {'schema': 'oltp_finance'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    sheet_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    category_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    sub_category_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    sub_sub_category_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    account_name_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    actual_budget: Mapped[ActualBudgetEnum] = mapped_column(Enum(ActualBudgetEnum, values_callable=lambda cls: [member.value for member in cls], name='actual_budget_enum', schema='oltp_finance'), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    account_name: Mapped['AccountNames'] = relationship('AccountNames', back_populates='transaction_rules')
-    category: Mapped['Categories'] = relationship('Categories', back_populates='transaction_rules')
-    sheet: Mapped['Sheets'] = relationship('Sheets', back_populates='transaction_rules')
-    sub_category: Mapped['SubCategories'] = relationship('SubCategories', back_populates='transaction_rules')
-    sub_sub_category: Mapped['SubSubCategories'] = relationship('SubSubCategories', back_populates='transaction_rules')
-    finance_transactions: Mapped[list['FinanceTransactions']] = relationship('FinanceTransactions', back_populates='rule')
-
-
-class Users(Base):
-    __tablename__ = 'users'
-    __table_args__ = (
-        ForeignKeyConstraint(['department_id'], ['oltp_main.departments.id'], name='users_id_dept_fkey'),
-        ForeignKeyConstraint(['role_id'], ['oltp_main.roles.id'], name='users_id_roles_fkey'),
-        PrimaryKeyConstraint('id', name='users_pkey'),
-        Index('ix_oltp_main_users_id_dept', 'department_id'),
-        Index('ix_oltp_main_users_id_roles', 'role_id'),
-        Index('ix_oltp_main_users_nik_active', 'nik', postgresql_where='(deleted_at IS NULL)', unique=True),
-        Index('ix_oltp_main_users_public_id', 'public_id', unique=True),
-        Index('ix_users_public_id', 'public_id', unique=True),
-        {'schema': 'oltp_main'}
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    nik: Mapped[str] = mapped_column(String(16), nullable=False)
-    role_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    department_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
-    password: Mapped[Optional[str]] = mapped_column(String(255))
-    public_id: Mapped[Optional[str]] = mapped_column(String(22))
-    deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True))
-
-    department: Mapped['Departments'] = relationship('Departments', back_populates='users')
-    role: Mapped['Roles'] = relationship('Roles', back_populates='users')
-    history: Mapped[list['History']] = relationship('History', back_populates='user')
-
-
-class Sheet3TransactionRules(Base):
-    __tablename__ = 'sheet3_transaction_rules'
-    __table_args__ = (
-        ForeignKeyConstraint(['detail_id'], ['oltp_purchasing.details.id'], name='fk_purchasing_sheet3_rules_detail'),
-        ForeignKeyConstraint(['variety_id'], ['oltp_purchasing.varieties.id'], name='fk_purchasing_sheet3_rules_variety'),
-        PrimaryKeyConstraint('id', name='pk_purchasing_sheet3_transaction_rules'),
-        UniqueConstraint('variety_id', 'detail_id', name='uq_purchasing_sheet3_rules_combo'),
-        {'schema': 'oltp_purchasing'}
-    )
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    variety_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    detail_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-
-    detail: Mapped['Details'] = relationship('Details', back_populates='sheet3_transaction_rules')
-    variety: Mapped['Varieties'] = relationship('Varieties', back_populates='sheet3_transaction_rules')
-    purchasing_sheet3_transactions: Mapped[list['PurchasingSheet3Transactions']] = relationship('PurchasingSheet3Transactions', back_populates='rule')
-
-
-class History(Base):
-    __tablename__ = 'history'
-    __table_args__ = (
-        ForeignKeyConstraint(['department_id'], ['oltp_main.departments.id'], name='history_upload_id_dept_fkey'),
-        ForeignKeyConstraint(['role_id'], ['oltp_main.roles.id'], name='history_upload_id_roles_fkey'),
-        ForeignKeyConstraint(['user_id'], ['oltp_main.users.id'], name='history_upload_id_users_fkey'),
-        PrimaryKeyConstraint('id', name='history_upload_pkey'),
-        UniqueConstraint('public_id', name='history_public_id_unique'),
-        Index('ix_history_public_id', 'public_id', unique=True),
-        Index('ix_history_upload_public_id', 'public_id'),
-        Index('ix_oltp_main_history_public_id', 'public_id', unique=True),
-        Index('ix_oltp_main_history_upload_id_dept', 'department_id'),
-        Index('ix_oltp_main_history_upload_id_roles', 'role_id'),
-        Index('ix_oltp_main_history_upload_id_users', 'user_id'),
-        {'schema': 'oltp_main'}
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    role_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    department_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    time_stamp: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'))
-    status: Mapped[StatusEnum] = mapped_column(Enum(StatusEnum, values_callable=lambda cls: [member.value for member in cls], name='status_enum', schema='oltp_main'), nullable=False)
-    analysis_result: Mapped[Optional[dict]] = mapped_column(JSONB)
-    file_name_storage: Mapped[Optional[str]] = mapped_column(String(255))
-    note: Mapped[Optional[str]] = mapped_column(Text)
-    public_id: Mapped[Optional[str]] = mapped_column(String(22))
-
-    department: Mapped['Departments'] = relationship('Departments', back_populates='history')
-    role: Mapped['Roles'] = relationship('Roles', back_populates='history')
-    user: Mapped['Users'] = relationship('Users', back_populates='history')
-    finance_transactions: Mapped[list['FinanceTransactions']] = relationship('FinanceTransactions', back_populates='history')
-    purchasing_sheet1_transactions: Mapped[list['PurchasingSheet1Transactions']] = relationship('PurchasingSheet1Transactions', back_populates='history')
-    purchasing_sheet2_transactions: Mapped[list['PurchasingSheet2Transactions']] = relationship('PurchasingSheet2Transactions', back_populates='history')
-    purchasing_sheet3_transactions: Mapped[list['PurchasingSheet3Transactions']] = relationship('PurchasingSheet3Transactions', back_populates='history')
-    sales_transactions: Mapped[list['SalesTransactions']] = relationship('SalesTransactions', back_populates='history')
-
-
-class FinanceTransactions(Base):
+class StagingFinanceTransactions(Base):
     __tablename__ = 'finance_transactions'
     __table_args__ = (
         ForeignKeyConstraint(['history_id'], ['oltp_main.history.id'], ondelete='CASCADE', name='fk_stg_finance_transactions_history'),
@@ -391,11 +57,11 @@ class FinanceTransactions(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
     status: Mapped[Optional[StatusActionEnum]] = mapped_column(Enum(StatusActionEnum, values_callable=lambda cls: [member.value for member in cls], name='status_action_enum', schema='stg_table'))
 
-    history: Mapped['History'] = relationship('History', back_populates='finance_transactions')
-    rule: Mapped['TransactionRules'] = relationship('TransactionRules', back_populates='finance_transactions')
+    history: Mapped['History'] = relationship('History', back_populates='staging_finance_transactions')
+    rule: Mapped['TransactionRules'] = relationship('TransactionRules', back_populates='staging_transactions')
 
 
-class PurchasingSheet1Transactions(Base):
+class StagingPurchasingSheet1Transactions(Base):
     __tablename__ = 'purchasing_sheet1_transactions'
     __table_args__ = (
         ForeignKeyConstraint(['history_id'], ['oltp_main.history.id'], name='fk_purchasing_sheet1_transaction_history'),
@@ -423,11 +89,12 @@ class PurchasingSheet1Transactions(Base):
     lme_usno_1_2_80_20_cfr_turky: Mapped[Optional[int]] = mapped_column(Integer)
     lme_usno_1_2_80_20_cfr_turkey: Mapped[Optional[float]] = mapped_column(REAL)
     local_premium_idr_per_kg: Mapped[Optional[int]] = mapped_column(Integer)
+    status: Mapped[Optional[StatusActionEnum]] = mapped_column(Enum(StatusActionEnum, values_callable=lambda cls: [member.value for member in cls], name='status_action_enum', schema='stg_table'))
 
-    history: Mapped['History'] = relationship('History', back_populates='purchasing_sheet1_transactions')
+    history: Mapped['History'] = relationship('History', back_populates='staging_purchasing_sheet1_transactions')
 
 
-class PurchasingSheet2Transactions(Base):
+class StagingPurchasingSheet2Transactions(Base):
     __tablename__ = 'purchasing_sheet2_transactions'
     __table_args__ = (
         ForeignKeyConstraint(['delivery_detail_id'], ['oltp_purchasing.delivery_details.id'], name='fk_stg_purchasing_sheet2_transactions_delivery_detail'),
@@ -460,16 +127,17 @@ class PurchasingSheet2Transactions(Base):
     avg_qty: Mapped[Optional[int]] = mapped_column(BigInteger)
     avg_value: Mapped[Optional[int]] = mapped_column(BigInteger)
     avg_price: Mapped[Optional[int]] = mapped_column(BigInteger)
+    status: Mapped[Optional[StatusActionEnum]] = mapped_column(Enum(StatusActionEnum, values_callable=lambda cls: [member.value for member in cls], name='status_action_enum', schema='stg_table'))
 
-    delivery_detail: Mapped[Optional['DeliveryDetails']] = relationship('DeliveryDetails', back_populates='purchasing_sheet2_transactions')
-    grade: Mapped[Optional['Grades']] = relationship('Grades', back_populates='purchasing_sheet2_transactions')
-    history: Mapped['History'] = relationship('History', back_populates='purchasing_sheet2_transactions')
-    origin: Mapped[Optional['Origins']] = relationship('Origins', back_populates='purchasing_sheet2_transactions')
-    supplier: Mapped[Optional['Suppliers']] = relationship('Suppliers', back_populates='purchasing_sheet2_transactions')
-    variety: Mapped['Varieties'] = relationship('Varieties', back_populates='purchasing_sheet2_transactions')
+    delivery_detail: Mapped[Optional['DeliveryDetails']] = relationship('DeliveryDetails', back_populates='staging_sheet2_transactions')
+    grade: Mapped[Optional['Grades']] = relationship('Grades', back_populates='staging_sheet2_transactions')
+    history: Mapped['History'] = relationship('History', back_populates='staging_purchasing_sheet2_transactions')
+    origin: Mapped[Optional['Origins']] = relationship('Origins', back_populates='staging_sheet2_transactions')
+    supplier: Mapped[Optional['Suppliers']] = relationship('Suppliers', back_populates='staging_sheet2_transactions')
+    variety: Mapped['Varieties'] = relationship('Varieties', back_populates='staging_sheet2_transactions')
 
 
-class PurchasingSheet3Transactions(Base):
+class StagingPurchasingSheet3Transactions(Base):
     __tablename__ = 'purchasing_sheet3_transactions'
     __table_args__ = (
         ForeignKeyConstraint(['history_id'], ['oltp_main.history.id'], ondelete='CASCADE', name='fk_stg_purchasing_sheet3_transactions_history'),
@@ -485,15 +153,23 @@ class PurchasingSheet3Transactions(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
     value: Mapped[Optional[decimal.Decimal]] = mapped_column(Numeric(26, 6))
+    status: Mapped[Optional[StatusActionEnum]] = mapped_column(Enum(StatusActionEnum, values_callable=lambda cls: [member.value for member in cls], name='status_action_enum', schema='stg_table'))
 
-    history: Mapped['History'] = relationship('History', back_populates='purchasing_sheet3_transactions')
-    rule: Mapped['Sheet3TransactionRules'] = relationship('Sheet3TransactionRules', back_populates='purchasing_sheet3_transactions')
+    history: Mapped['History'] = relationship('History', back_populates='staging_purchasing_sheet3_transactions')
+    rule: Mapped['Sheet3TransactionRules'] = relationship('Sheet3TransactionRules', back_populates='staging_sheet3_transactions')
 
 
-class SalesTransactions(Base):
+# Di dalam stg_table.py
+
+class StagingSalesTransactions(Base):
     __tablename__ = 'sales_transactions'
     __table_args__ = (
-        ForeignKeyConstraint(['history_id'], ['oltp_main.history.id'], ondelete='RESTRICT', name='fk_sales_history'),
+        ForeignKeyConstraint(['history_id'], ['oltp_main.history.id'], ondelete='RESTRICT', name='fk_stg_sales_history'),
+        
+        ForeignKeyConstraint(['category_id'], ['oltp_sales.categories.id'], name='fk_stg_sales_category'),
+        ForeignKeyConstraint(['grade_id'], ['oltp_sales.grades.id'], name='fk_stg_sales_grade'),
+        ForeignKeyConstraint(['week_id'], ['oltp_sales.weeks.id'], name='fk_stg_sales_week'),
+
         PrimaryKeyConstraint('id', name='sales_transactions_pkey'),
         {'schema': 'stg_table'}
     )
@@ -505,5 +181,10 @@ class SalesTransactions(Base):
     grade_id: Mapped[int] = mapped_column(Integer, nullable=False)
     week_id: Mapped[int] = mapped_column(Integer, nullable=False)
     value: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[Optional[StatusActionEnum]] = mapped_column(Enum(StatusActionEnum, values_callable=lambda cls: [member.value for member in cls], name='status_action_enum', schema='stg_table'))
 
-    history: Mapped['History'] = relationship('History', back_populates='sales_transactions')
+    # Relasi yang sudah kita perbaiki sebelumnya
+    history: Mapped['History'] = relationship('History', back_populates='staging_sales_transactions')
+    category: Mapped['SalesCategories'] = relationship('SalesCategories', back_populates='staging_transactions')
+    grade: Mapped['SalesGrades'] = relationship('SalesGrades', back_populates='staging_transactions')
+    week: Mapped['Weeks'] = relationship('Weeks', back_populates='staging_transactions')

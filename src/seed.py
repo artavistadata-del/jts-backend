@@ -1,9 +1,14 @@
 from sqlalchemy.orm import Session
 from src.core.database import SessionLocal
 from src.core.config import settings
-# Ganti 'nama_file_model_anda' dengan nama file tempat class-class ini berada
 from src.core.security import get_password_hash
-from src.models.models import Departments, Roles, RoleEnum, Users 
+
+# Pastikan import semua file model agar registry SQLAlchemy lengkap
+from src.models.models import *
+from src.models.stg_table import *
+from src.modules.transaction.finance.models import *
+from src.modules.transaction.purchasing.models import *
+from src.modules.transaction.sales.models import *
 
 def seed_data():
     db: Session = SessionLocal()
@@ -12,7 +17,7 @@ def seed_data():
         print("Memulai proses seeding...")
 
         # 1. Seeding Departments
-        departments_data = ['FINANCE','MANUFACTURE', 'PURCHASING']
+        departments_data = ['FINANCE','PURCHASING','SALES']
         for dept_name in departments_data:
             existing_dept = db.query(Departments).filter(Departments.name == dept_name).first()
             if not existing_dept:
@@ -20,7 +25,7 @@ def seed_data():
                 db.add(new_dept)
                 print(f"Berhasil menambahkan Department: {dept_name}")
         
-        # Flush agar ID department-nya di-generate sebelum dipakai oleh User
+        # Flush agar ID di-generate sebelum dipakai User
         db.flush() 
 
         # 2. Seeding Roles
@@ -31,7 +36,7 @@ def seed_data():
                 db.add(new_role)
                 print(f"Berhasil menambahkan Role: {role_val.value}")
         
-        # Flush agar ID role-nya di-generate sebelum dipakai oleh User
+        # Flush agar ID di-generate sebelum dipakai User
         db.flush()
 
         # 3. Seeding User Admin
@@ -39,7 +44,7 @@ def seed_data():
         existing_user = db.query(Users).filter(Users.nik == admin_nik).first()
         
         if not existing_user:
-            # Ambil objek Role ADMIN dan Department FINANCE dari database yang baru saja di-seed
+            # Ambil objek Role ADMIN dan Department FINANCE dari database yang baru di-seed
             admin_role = db.query(Roles).filter(Roles.name == RoleEnum.ADMIN).first()
             finance_dept = db.query(Departments).filter(Departments.name == 'FINANCE').first()
 
@@ -48,11 +53,12 @@ def seed_data():
                     nik=admin_nik,
                     name=settings.ADMIN_NAME,
                     password=get_password_hash(settings.ADMIN_PASSWORD),
-                    department_id=settings.ADMIN_DEPARTMENT_ID,
-                    role_id=settings.ADMIN_ROLE_ID
+                    # 👇 PERBAIKAN: Gunakan ID asli dari objek yang baru terbuat di database
+                    department_id=finance_dept.id,
+                    role_id=admin_role.id
                 )
                 db.add(new_admin)
-                print(f"Berhasil menambahkan User Admin: ALBERTO")
+                print(f"Berhasil menambahkan User Admin: {settings.ADMIN_NAME}")
             else:
                 print("Gagal menambahkan User Admin: Role atau Department tidak ditemukan.")
         else:

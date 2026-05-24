@@ -9,10 +9,10 @@ class UploadRepository:
     # ==========================================
     # UPLOAD FILE [MANAGER & USER ACCESS]
     # ==========================================
-    def upload_file(self, file_name: str, file_stream: typing.BinaryIO, file_size: int, content_type: str, dept_id : int):
+    def upload_file(self, file_name: str, file_stream: typing.BinaryIO, file_size: int, content_type: str, department_name : str):
         """Hanya bertugas mengirim file fisik ke MinIO"""
-        # bucket_name = f"raw-dept-{dept_id}"
-        bucket_name = get_dept_config(dept_id)
+
+        bucket_name = get_dept_config(department_name)
         bucket_name = bucket_name['name']
         try:
             file_stream.seek(0) 

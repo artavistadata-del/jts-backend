@@ -15,47 +15,15 @@ from src.core.dependencies import (
     get_history_service,
     get_minio_service,
     get_minio_service,
-    get_transaction_service,
+    # get_transaction_service,
 )
-from src.modules.transaction.service import TransactionService
+from src.modules.transaction.finance.dependencies import get_finance_transaction_service
+from src.modules.transaction.finance.service import FinanceTransactionService
+from src.modules.transaction.purchasing.dependecies import get_purchasing_transaction_service
+from src.modules.transaction.purchasing.service import PurchasingTransactionService
+# from src.modules.transaction.service import TransactionService
 
 router = APIRouter(prefix="/v1/uploads", tags=["Upload"])
-
-
-# ==========================================
-# UPLOAD FILE [ USER ACCESS ]
-# ==========================================
-# @router.post("/xxx")
-# async def upload_payroll_excel(
-#     file: UploadFile = File(...),
-#     userNow: Users = Depends(get_current_user),
-#     upload_service: UploadService = Depends(get_minio_service)
-# ):
-#     if not file.filename.endswith(('.xls', '.xlsx')):
-#         raise HTTPException(
-#             status_code=403,
-#             detail="Format ditolak. Harap unggah file Excel (.xls atau .xlsx)"
-#         )
-
-#     if userNow.role.name == 'DIREKTUR' :
-#         raise HTTPException(
-#             status_code=403,
-#             detail="Akses ditolak. Role Anda Tidak Punya akses Upload File"
-#         )
-
-#     result = await run_in_threadpool(
-#         upload_service.process_payroll_upload,
-#         user=userNow,
-#         file_name=file.filename,
-#         file_stream=file.file,
-#         file_size=file.size,
-#         content_type=file.content_type
-#     )
-
-#     if result.get("status") == "error":
-#         raise HTTPException(status_code=500, detail=result["message"])
-
-#     return result
 
 
 # ==========================================
@@ -177,7 +145,7 @@ def get_staging_finance_transactions_endpoint(
         None, description="Filter tipe report, contoh: IS, BS"
     ),
     # userNow: Users = Depends(get_current_user),
-    service: TransactionService = Depends(get_transaction_service),
+    service: FinanceTransactionService = Depends(get_finance_transaction_service),
 ):
     skip = (page - 1) * limit
 
@@ -190,4 +158,29 @@ def get_staging_finance_transactions_endpoint(
         raise HTTPException(
             status_code=500,
             detail=f"Terjadi kesalahan internal server saat mengambil data preview: {e}",
+        )
+    
+
+@router.get("/purchasing/{history_id}")
+def preview_staging_purchasing_endpoint(
+    history_id: str = Path(..., description="Public ID dari History (huruf acak)"),
+    sheet_type: str = Query("sheet1", description="Pilih: 'sheet1', 'sheet2', atau 'sheet3'"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    service: PurchasingTransactionService = Depends(get_purchasing_transaction_service)
+):
+    skip = (page - 1) * limit
+    try:
+        return service.get_staging_transactions(
+            sheet_type=sheet_type.lower(), 
+            history_id_public=history_id, 
+            skip=skip, 
+            limit=limit
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Terjadi kesalahan internal server saat mengambil data preview staging: {e}"
         )

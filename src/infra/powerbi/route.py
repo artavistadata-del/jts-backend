@@ -35,7 +35,7 @@ async def get_aad_token():
 async def get_powerbi_token(current_user: Users = Depends(get_current_user)):
     
     try:
-        pbi_config = get_powerbi_config(current_user.department_id)
+        pbi_config = get_powerbi_config(current_user.department.name)
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     
@@ -79,7 +79,7 @@ async def get_powerbi_token(current_user: Users = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Anda tidak memiliki akses ke endpoint ini")
 
     try:
-        pbi_config = get_powerbi_config(1)
+        pbi_config = get_powerbi_config('FINANCE')
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     
@@ -122,7 +122,7 @@ async def get_powerbi_token(current_user: Users = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Anda tidak memiliki akses ke endpoint ini")
 
     try:
-        pbi_config = get_powerbi_config(3)
+        pbi_config = get_powerbi_config('PURCHASING')
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     

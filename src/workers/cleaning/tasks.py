@@ -2,18 +2,22 @@ from sqlalchemy import update
 
 from src.core.database import celery_app, SessionLocal
 from src.infra.upload.schema import ConfirmUploadInput
-from src.models.models import History, StatusEnum
+from src.models.models import *
+from src.models.stg_table import *
+from src.modules.transaction.finance.models import *
+from src.modules.transaction.purchasing.models import *
+from src.modules.transaction.sales.models import *
 from src.workers.cleaning.service_factory import get_cleaning_service
 from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
 
 @celery_app.task(name="cleaning.tasks.analyze_excel_task", bind=True, max_retries=3)
-def analyze_excel_task(self, history_id: int, filename: str, id_dept: int):
+def analyze_excel_task(self, history_id: int, filename: str, name: str):
     db = SessionLocal()
     try:
         try:
-            service = get_cleaning_service(id_dept, db)
+            service = get_cleaning_service(name, db)
         except ValueError as ve:
             error_message = str(ve) 
             
@@ -44,11 +48,10 @@ def analyze_excel_task(self, history_id: int, filename: str, id_dept: int):
         db.close()
 
 @celery_app.task(name="cleaning.tasks.commit_upsert_task", bind=True, max_retries=3)
-def commit_upsert_task(self, history_id: int, filename: str, id_dept: int, action_value : str):
+def commit_upsert_task(self, history_id: int, filename: str, name: str, action_value : str):
     db = SessionLocal()
     try:
-        service = get_cleaning_service(id_dept, db)
-        # service.execute_commit(history_id, filename)
+        service = get_cleaning_service(name, db)
         print(action_value)
         if action_value == ConfirmUploadInput.CONFIRM.value :
             service.execute_commit(history_id, filename)

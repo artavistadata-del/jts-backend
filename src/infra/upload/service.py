@@ -32,6 +32,7 @@ class UploadService:
         """Mengorkestrasi upload MinIO dan pencatatan histori Database"""
         
         final_department_id = None
+        department_name = ""
 
         if user_now.role.name == RoleEnum.ADMIN.value:
             if not target_department_id:
@@ -47,17 +48,22 @@ class UploadService:
                     detail="Department Tidak Ditemukan"
                 )
             
-            final_department_id = department_find.id 
+            final_department_id = department_find.id
+            department_name = department_find.name
 
         else:
             # --- RULES UNTUK STAFF / MANAGER ---
             final_department_id = user_now.department_id
-            result = self.department_service.display_dept_by_id(final_department_id)
-            if not result:
+            
+            # 👇 PERBAIKAN: Ubah 'result' menjadi 'department_find'
+            department_find = self.department_service.display_dept_by_id(final_department_id)
+            if not department_find:
                 raise HTTPException(
                     status_code=404,
                     detail="Department Tidak Ditemukan"
                 )
+            # 👇 Sekarang ini sudah bisa membaca datanya dengan benar
+            department_name = department_find.name
 
         try:
             original_name, ext = os.path.splitext(file_name)
@@ -70,7 +76,7 @@ class UploadService:
                 file_stream=file_stream,
                 file_size=file_size,
                 content_type=content_type,
-                dept_id= user_now.department_id if final_department_id == None else final_department_id
+                department_name=department_name.upper()
             )
         except Exception as e:
             return {"status": "error", "message": str(e)}
@@ -88,7 +94,7 @@ class UploadService:
 
         result =  success_upload.public_id, success_upload.id
 
-        analyze_excel_task.delay(result[1], storage_name, final_department_id)
+        analyze_excel_task.delay(success_upload.id, storage_name, department_name.upper())
 
         return {
             "status": "success",

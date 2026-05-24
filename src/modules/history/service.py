@@ -1,16 +1,17 @@
 from fastapi import HTTPException
 from sqlalchemy import text
 from src.infra.upload.schema import ConfirmUploadInput
+from src.modules.departments.service import DepartmentService
 from src.workers.cleaning.tasks import commit_upsert_task
-from src.modules.departments.registry import get_dept_config
 from src.models.models import History as HistoryUploadModels, StatusEnum, Users
 from src.modules.history.schema import HistoryUpload as HistoryUploadSchema
 from src.modules.history.repository import HistoryRepository 
 
 
 class HistoryService :
-    def __init__(self, history_repo : HistoryRepository):
+    def __init__(self, history_repo : HistoryRepository, department_service : DepartmentService):
         self.history_repo = history_repo
+        self.department_service = department_service
 
     # ==========================================
     # ADD HISTORY
@@ -78,72 +79,28 @@ class HistoryService :
     # ==========================================
     # CONFIRM UPLOAD
     # ==========================================
-    def confirm_and_process_upload(self, history_id: int, action : str):
+    def confirm_and_process_upload(self, history_id: int, action):
         record = self.history_repo.get_history_by_id_hist(history_id)
-        
+
         if not record or record.status != StatusEnum.AWAITING_PREVIEW:
             raise HTTPException(status_code=400, detail="Status data tidak valid untuk konfirmasi.")
 
-        record.status = StatusEnum.PROCESSING_INSERT
+        department = self.department_service.display_dept_by_id(record.department_id)
+        if not department:
+            raise HTTPException(status_code=404, detail="Department tidak ditemukan.")
         
+        actual_department_name = department.name
+
+        record.status = StatusEnum.PROCESSING_INSERT
         self.history_repo.update_history(record)
         
-        commit_upsert_task.delay(history_id, record.file_name, record.department_id, action.value)
+        action_str = action.value if hasattr(action, 'value') else str(action)
+
+        commit_upsert_task.delay(
+            int(history_id), 
+            str(record.file_name), 
+            str(actual_department_name).upper(), 
+            action_str
+        )
 
         return True
-    
-
-    # ==========================================
-    # PREVIEW HISTORY -> APPROVE/REJECT [ ADMIN ]
-    # ==========================================
-    def review_history(self, history_id: str, action: StatusEnum, note: str, manager_id_dept: int):
-
-        record = self.history_repo.get_history_by_uuid_hist(history_id)
-        
-        if not record:
-            raise HTTPException(status_code=404, detail="Data History tidak ditemukan.")
-
-        # 2. Keamanan: Cegah Manager mereview data departemen lain
-        if record.department_id != manager_id_dept:
-            raise HTTPException(status_code=403, detail="Anda tidak berhak me-review file dari departemen lain.")
-
-        # 3. Validasi status harus PENDING
-        if record.status != StatusEnum.PENDING:
-            raise HTTPException(status_code=400, detail=f"File berstatus {record.status.value}, tidak bisa direview.")
-
-        # 4. Ambil konfigurasi model (FactFinance/HR/dll) dari registry
-        config = get_dept_config(record.department_id)
-        # target_model = config["model"]
-
-        # 5. EKSEKUSI REJECT ATAU APPROVE
-        if action == StatusEnum.REJECTED:
-            # Hapus data transaksi
-            # self.history_repo.delete_related_facts(target_model, record.id)
-            
-            # Update status history & catatan
-            record.status = StatusEnum.REJECTED
-            record.note = note
-            self.history_repo.update_history(record)
-            
-            return "File ditolak. Data transaksi berhasil dihapus dari sistem."
-
-        elif action == StatusEnum.APPROVED:
-            # Update status history & catatan
-            record.status = StatusEnum.APPROVED
-            record.note = note
-            self.history_repo.update_history(record)
-
-            # Eksekusi Refresh Materialized View Power BI
-            mv_query = config.get("mv_refresh_query")
-            if mv_query:
-                try:
-                    self.history_repo.db.execute(text(mv_query))
-                    self.history_repo.db.commit()
-                except Exception as e:
-                    self.history_repo.db.rollback()
-                    print(f"Peringatan: Gagal refresh Materialized View - {e}")
-            
-            return "File disetujui. Laporan Power BI telah diperbarui."
-            
-        else:
-            raise HTTPException(status_code=400, detail="Aksi tidak valid. Hanya APPROVED atau REJECTED.")

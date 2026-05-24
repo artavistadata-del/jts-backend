@@ -11,10 +11,25 @@ from src.workers.mappers.purchasing import PurchasingMapper
 class PurchasingService(AbstractCleaningService):
     def __init__(self, db_session):
         super().__init__(db_session)
-        self.id_dept = 3
+        self.department_name = 'PURCHASING'
         self.stg_table_sheet3 = "stg_table.purchasing_sheet3_transactions"
         self.stg_table_sheet2 = "stg_table.purchasing_sheet2_transactions"
         self.stg_table_sheet1 = "stg_table.purchasing_sheet1_transactions"
+
+    def _flag_staging_status(self, history_id: int):
+        """Menandai baris staging sebagai 'insert' atau 'replace' berdasarkan perbandingan dengan tabel main"""
+        
+        # Flag Sheet 3
+        q_sheet3 = PurchasingQueries.update_staging_status_sheet3(self.stg_table_sheet3, "oltp_purchasing.sheet3_transactions")
+        self.db.execute(q_sheet3, {"h_id": history_id})
+        
+        # Flag Sheet 2
+        q_sheet2 = PurchasingQueries.update_staging_status_sheet2(self.stg_table_sheet2, "oltp_purchasing.sheet2_transactions")
+        self.db.execute(q_sheet2, {"h_id": history_id})
+        
+        # Flag Sheet 1
+        q_sheet1 = PurchasingQueries.update_staging_status_sheet1(self.stg_table_sheet1, "oltp_purchasing.sheet1_transactions")
+        self.db.execute(q_sheet1, {"h_id": history_id})
 
     # ==========================================
     # HUKUM WAJIB: ALUR KERJA UTAMA
@@ -28,7 +43,7 @@ class PurchasingService(AbstractCleaningService):
         try:
             # --- MULAI PROSES ETL ---
             df_excel = self._download_and_clean(
-                history_id, filename, self.id_dept, process_purchasing_excel
+                history_id, filename, self.department_name, process_purchasing_excel
             )
 
             total_row_excel = (
@@ -72,6 +87,8 @@ class PurchasingService(AbstractCleaningService):
             self._push_staging_to_db(
                 df_staging_sheet1, history_id, self.stg_table_sheet1
             )
+
+            self._flag_staging_status(history_id)
 
             record.status = StatusEnum.AWAITING_PREVIEW
             self.db.commit()
