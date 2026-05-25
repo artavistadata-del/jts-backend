@@ -9,7 +9,7 @@ class SalesMapper:
 
         rule_dict = dict(zip(df_rule["master_name"], df_rule["master_id"]))
 
-        kolom_mapping = ["category", "grade", "week"]
+        kolom_mapping = ["source", "grade", "week", "product"]
 
         df_staging = df_excel.with_columns(
             [

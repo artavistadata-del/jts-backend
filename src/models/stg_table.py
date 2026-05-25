@@ -165,11 +165,10 @@ class StagingSalesTransactions(Base):
     __tablename__ = 'sales_transactions'
     __table_args__ = (
         ForeignKeyConstraint(['history_id'], ['oltp_main.history.id'], ondelete='RESTRICT', name='fk_stg_sales_history'),
-        
-        ForeignKeyConstraint(['category_id'], ['oltp_sales.categories.id'], name='fk_stg_sales_category'),
+        ForeignKeyConstraint(['source_id'], ['oltp_sales.sources.id'], name='fk_stg_sales_source'),
+        ForeignKeyConstraint(['product_id'], ['oltp_sales.products.id'], name='fk_stg_sales_product'),
         ForeignKeyConstraint(['grade_id'], ['oltp_sales.grades.id'], name='fk_stg_sales_grade'),
         ForeignKeyConstraint(['week_id'], ['oltp_sales.weeks.id'], name='fk_stg_sales_week'),
-
         PrimaryKeyConstraint('id', name='sales_transactions_pkey'),
         {'schema': 'stg_table'}
     )
@@ -177,14 +176,19 @@ class StagingSalesTransactions(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     history_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    category_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    
+    # Kolom relasi baru
+    source_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    product_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    
     grade_id: Mapped[int] = mapped_column(Integer, nullable=False)
     week_id: Mapped[int] = mapped_column(Integer, nullable=False)
     value: Mapped[int] = mapped_column(BigInteger, nullable=False)
     status: Mapped[Optional[StatusActionEnum]] = mapped_column(Enum(StatusActionEnum, values_callable=lambda cls: [member.value for member in cls], name='status_action_enum', schema='stg_table'))
 
-    # Relasi yang sudah kita perbaiki sebelumnya
+    # Definisi relationship
     history: Mapped['History'] = relationship('History', back_populates='staging_sales_transactions')
-    category: Mapped['SalesCategories'] = relationship('SalesCategories', back_populates='staging_transactions')
+    source: Mapped['SalesSources'] = relationship('SalesSources', back_populates='staging_transactions')
+    product: Mapped['SalesProducts'] = relationship('SalesProducts', back_populates='staging_transactions')
     grade: Mapped['SalesGrades'] = relationship('SalesGrades', back_populates='staging_transactions')
     week: Mapped['Weeks'] = relationship('Weeks', back_populates='staging_transactions')

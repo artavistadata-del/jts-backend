@@ -12,12 +12,12 @@ class SalesQueries:
     @staticmethod
     def insert_into_main(stg_table : str, main_table : str) :
         return text(f"""
-            INSERT INTO {main_table} (history_id, date, category_id, grade_id, week_id, value)
-            SELECT history_id, date, category_id, grade_id, week_id, value
+            INSERT INTO {main_table} (history_id, date, source_id, grade_id, week_id, product_id, value)
+            SELECT history_id, date, source_id, grade_id, week_id, product_id, value
             FROM {stg_table}
             WHERE history_id = :h_id
 
-            ON CONFLICT (date, category_id, grade_id, week_id) 
+            ON CONFLICT (date, source_id, grade_id, week_id, product_id) 
 
             DO UPDATE SET
                 history_id = EXCLUDED.history_id,
