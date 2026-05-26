@@ -1,8 +1,10 @@
+from decimal import Decimal
+import decimal
 from typing import Optional
 import datetime
 import enum
 
-from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, REAL, String, Table, Text, UniqueConstraint, text
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, Enum, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, REAL, String, Table, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from src.core.database import Base
@@ -220,9 +222,9 @@ class PurchasingSheet2Transactions(Base):
     delivery: Mapped[Optional[datetime.date]] = mapped_column(Date)
     actual_eta: Mapped[Optional[datetime.date]] = mapped_column(Date)
     delivery_remarks: Mapped[Optional[str]] = mapped_column(Text)
-    avg_qty: Mapped[Optional[int]] = mapped_column(BigInteger)
-    avg_value: Mapped[Optional[int]] = mapped_column(BigInteger)
-    avg_price: Mapped[Optional[int]] = mapped_column(BigInteger)
+    avg_qty: Mapped[Optional[float]] = mapped_column(Float)
+    avg_value: Mapped[Optional[Decimal]] = mapped_column(Numeric(precision=26, scale=6))
+    avg_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(precision=26, scale=6))
 
     delivery_detail: Mapped[Optional['DeliveryDetails']] = relationship('DeliveryDetails', back_populates='sheet2_transactions')
     grade: Mapped[Optional['Grades']] = relationship('Grades', back_populates='sheet2_transactions')
@@ -248,7 +250,7 @@ class PurchasingSheet3Transactions(Base):
     period_date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'))
-    value: Mapped[Optional[int]] = mapped_column(BigInteger)
+    value: Mapped[Optional[decimal.Decimal]] = mapped_column(Numeric(26, 6))
 
     history: Mapped['History'] = relationship('History', back_populates='purchasing_sheet3_transactions')
     rule: Mapped['Sheet3TransactionRules'] = relationship('Sheet3TransactionRules', back_populates='sheet3_transactions')

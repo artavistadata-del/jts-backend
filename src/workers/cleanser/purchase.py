@@ -1,3 +1,5 @@
+from datetime import date
+
 import polars as pl
 from io import BytesIO
 
@@ -121,14 +123,14 @@ def _clean_sheet1(raw_bytes: BytesIO, history_id: int) -> pl.DataFrame:
     if "Date" in df.columns:
         df = (
             df.with_columns(
-                pl.col("Date").str.to_date("%d/%m/%Y", strict=False).alias("date")
+                pl.col("Date").str.to_date("%m/%d/%Y", strict=False).alias("date")
             )
             .drop("Date")
         )
 
     elif "date" in df.columns:
         df = df.with_columns(
-            pl.col("date").str.to_date("%d/%m/%Y", strict=False).alias("date")
+            pl.col("date").str.to_date("%m/%d/%Y", strict=False).alias("date")
         )
     else:
         raise ValueError("Sheet 1 tidak memiliki kolom Date/date.")
@@ -193,9 +195,8 @@ def _clean_sheet2(raw_bytes: BytesIO, history_id: int) -> pl.DataFrame:
 
         pl.col("avg_qty").cast(pl.Int32, strict=False),
         pl.col("avg_value").cast(pl.Int32, strict=False),
-        pl.col("avg_price").cast(pl.Int32, strict=False),
-
-        pl.lit(history_id).cast(pl.Int32).alias("history_id"),
+        pl.col("avg_price").cast(pl.Float32, strict=False),
+        pl.lit(history_id).cast(pl.Int32).alias("history_id")
     ])
 
     return df
@@ -210,20 +211,20 @@ def _clean_sheet3(raw_bytes: BytesIO, history_id: int) -> pl.DataFrame:
 
     df = _set_first_row_as_header(df)
 
-    required_cols = {"Index", "Variety", "Detail"}
+    required_cols = {"Idx", "Variety", "Detail"}
     missing = required_cols - set(df.columns)
 
     if missing:
         raise ValueError(f"Sheet 3 kolom wajib tidak ditemukan: {missing}")
 
     df = df.unpivot(
-        index=["Index", "Variety", "Detail"],
+        index=["Idx", "Variety", "Detail"],
         variable_name="date",
         value_name="value",
     )
 
     df = df.rename({
-        "Index": "source_index",
+        "Idx": "source_index",
         "Variety": "variety",
         "Detail": "detail",
     })
@@ -235,12 +236,11 @@ def _clean_sheet3(raw_bytes: BytesIO, history_id: int) -> pl.DataFrame:
         pl.col("detail").cast(pl.String, strict=False)\
             .str.replace_all(" ", ""),
 
-        (
-            pl.lit("01/") + pl.col("date").cast(pl.String)
-        ).str.to_date("%d/%m/%Y", strict=False).alias("period_date"),
+        pl.col("date").cast(pl.String)\
+        .str.to_date("%m/%d/%Y", strict=False).alias("period_date"),
 
-        pl.col("value").cast(pl.Int32, strict=False),
-        pl.lit(history_id).cast(pl.Int32).alias("history_id"),
+        pl.col("value").cast(pl.Float64, strict=False),
+        pl.lit(history_id).cast(pl.Int32).alias("history_id")
     ]).drop("date")
 
     df = df.with_columns(
@@ -267,13 +267,19 @@ def _clean_sheet3(raw_bytes: BytesIO, history_id: int) -> pl.DataFrame:
         pl.col('variety').str.replace_all(" ", "").str.to_uppercase()
     )
 
+    # cek_data = df.filter(
+    #     (pl.col("detail") == "($/ton)") & 
+    #     (pl.col("period_date") == date(2025, 12, 1))
+    # )
+    # print(cek_data)
+
     return df.select([
-        "variety",
-        "detail",
-        "value",
-        "period_date",
-        "history_id",
-    ])
+            "variety",
+            "detail",
+            "value",
+            "period_date",
+            "history_id",
+        ])
 
 
 def process_purchasing_excel(raw_bytes: BytesIO, history_id: int) -> dict[str, pl.DataFrame]:

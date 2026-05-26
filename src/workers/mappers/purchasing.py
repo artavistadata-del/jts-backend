@@ -23,7 +23,7 @@ class PurchasingMapper:
         # 3. Tambahkan kolom history_id dan tanggal
         df_staging = df_staging.with_columns([
             pl.lit(history_id).alias("history_id"),
-            pl.col("value").cast(pl.Int64), # Pastikan value berupa angka
+            pl.col("value").cast(pl.Float64), # Pastikan value berupa angka
             pl.col("period_date").cast(pl.Date)
         ])
 

@@ -75,6 +75,10 @@ class PurchasingService(AbstractCleaningService):
             # =========================================
             df_staging_sheet1 = df_excel["sheet1"]
 
+            print("=== CEK TIPE DATA SEBELUM INSERT ===")
+            print(df_staging_sheet3.schema)
+            print(df_staging_sheet3.filter(pl.col("value") < 0))
+
             # =========================================
             # PUSH KE DATABASE
             # =========================================

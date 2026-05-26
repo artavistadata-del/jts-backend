@@ -3,7 +3,7 @@ import datetime
 import decimal
 import enum
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, REAL, String, Text, UniqueConstraint, text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum, Float, ForeignKeyConstraint, Index, Integer, Numeric, PrimaryKeyConstraint, REAL, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from src.core.database import Base
@@ -124,9 +124,9 @@ class StagingPurchasingSheet2Transactions(Base):
     delivery: Mapped[Optional[datetime.date]] = mapped_column(Date)
     actual_eta: Mapped[Optional[datetime.date]] = mapped_column(Date)
     delivery_remarks: Mapped[Optional[str]] = mapped_column(Text)
-    avg_qty: Mapped[Optional[int]] = mapped_column(BigInteger)
-    avg_value: Mapped[Optional[int]] = mapped_column(BigInteger)
-    avg_price: Mapped[Optional[int]] = mapped_column(BigInteger)
+    avg_qty: Mapped[Optional[float]] = mapped_column(Float)
+    avg_value: Mapped[Optional[decimal.Decimal]] = mapped_column(Numeric(precision=26, scale=6))
+    avg_price: Mapped[Optional[decimal.Decimal]] = mapped_column(Numeric(precision=26, scale=6))
     status: Mapped[Optional[StatusActionEnum]] = mapped_column(Enum(StatusActionEnum, values_callable=lambda cls: [member.value for member in cls], name='status_action_enum', schema='stg_table'))
 
     delivery_detail: Mapped[Optional['DeliveryDetails']] = relationship('DeliveryDetails', back_populates='staging_sheet2_transactions')
